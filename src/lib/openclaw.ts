@@ -74,6 +74,16 @@ export class OpenClawClient {
     }
   }
 
+  /** Send a one-shot chat and collect the full response (non-streaming UI). */
+  async chatOnce(
+    messages: Pick<ChatMessage, 'role' | 'content'>[],
+    sessionKey?: string,
+  ): Promise<string> {
+    let result = '';
+    await this.streamChat(messages, (chunk) => { result += chunk; }, undefined, sessionKey);
+    return result;
+  }
+
   /** Cancel an in-flight streaming request. */
   abort(): void {
     this.abortController?.abort();
