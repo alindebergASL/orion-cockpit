@@ -7,72 +7,80 @@ import {
   MessageSquare,
   X,
   AlertTriangle,
+  Clock,
 } from 'lucide-react';
-import { useOpenClaw } from '../../hooks/useOpenClaw';
 import { useChat } from '../../hooks/useChat';
 import { MessageList } from '../chat/MessageList';
 import { MessageInput } from '../chat/MessageInput';
 import { WeekView } from '../calendar/WeekView';
 import { MonthView } from '../calendar/MonthView';
 import type { CalendarEvent } from '../../types';
+import { api } from '../../lib/api';
 import {
   startOfWeek,
   addDays,
   formatShortDate,
-  parseEventsFromText,
   getCalendarColor,
-  CALENDAR_SYSTEM_PROMPT,
 } from '../../lib/calendarUtils';
 
 type ViewMode = 'week' | 'month';
 
+function timeAgo(isoString: string | null): string {
+  if (!isoString) return 'never';
+  const diff = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
 export function CalendarTab() {
-  const { client } = useOpenClaw();
-  const chat = useChat(client, 'cockpit-calendar-chat');
+  const chat = useChat('calendar');
 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [syncedAt, setSyncedAt] = useState<string | null>(null);
   const [view, setView] = useState<ViewMode>('week');
-  const [anchor, setAnchor] = useState(new Date()); // current week/month anchor
+  const [anchor, setAnchor] = useState(new Date());
   const [chatOpen, setChatOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const hasFetched = useRef(false);
 
   const weekStart = startOfWeek(anchor);
 
-  // ── Fetch events via OpenClaw chat API ────────────────────
+  // ── Load events from backend (SQLite) ────────────────────
   const fetchEvents = useCallback(async () => {
     setLoading(true);
     setError(null);
-
-    const today = new Date().toISOString().split('T')[0];
     try {
-      const response = await client.chatOnce(
-        [
-          { role: 'system', content: CALENDAR_SYSTEM_PROMPT },
-          {
-            role: 'user',
-            content: `List all events from my Google Calendars for the next 30 days starting from ${today}. Include events from all shared calendars.`,
-          },
-        ],
-        'cockpit-calendar-fetch',
-      );
-
-      const parsed = parseEventsFromText(response);
-      if (parsed.length > 0) {
-        setEvents(parsed);
-      } else {
-        setError(
-          'OpenClaw responded but no structured event data was returned. Try asking in the chat below.',
-        );
-      }
+      const result = await api.getCalendarEvents();
+      setEvents(result.events);
+      setSyncedAt(result.syncedAt);
     } catch {
-      setError('Could not reach OpenClaw. Check your connection and try again.');
+      setError('Could not load calendar data. Check your connection.');
     } finally {
       setLoading(false);
     }
-  }, [client]);
+  }, []);
+
+  // ── Trigger sync from OpenClaw ───────────────────────────
+  const handleSync = useCallback(async () => {
+    setSyncing(true);
+    setError(null);
+    try {
+      const result = await api.syncCalendar();
+      setEvents(result.events);
+      setSyncedAt(result.syncedAt);
+    } catch {
+      setError('Sync failed. OpenClaw may be unreachable.');
+    } finally {
+      setSyncing(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!hasFetched.current) {
@@ -97,7 +105,6 @@ export function CalendarTab() {
       ? `${formatShortDate(weekStart)} - ${formatShortDate(addDays(weekStart, 6))}`
       : anchor.toLocaleDateString([], { month: 'long', year: 'numeric' });
 
-  // ── Unique calendar names for legend ──────────────────────
   const calendarNames = [...new Set(events.map((e) => e.calendar).filter(Boolean))];
 
   return (
@@ -106,7 +113,12 @@ export function CalendarTab() {
       <div className="flex items-center justify-between border-b border-slate-800 px-4 py-2.5">
         <div className="flex items-center gap-3">
           <h2 className="text-sm font-semibold text-slate-100">Calendar</h2>
-          <span className="text-xs text-slate-500">Google Calendars via OpenClaw</span>
+          {syncedAt && (
+            <span className="flex items-center gap-1 text-[10px] text-slate-600">
+              <Clock className="h-3 w-3" />
+              Synced {timeAgo(syncedAt)}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -141,13 +153,13 @@ export function CalendarTab() {
             Chat
           </button>
 
-          {/* Refresh */}
+          {/* Sync */}
           <button
-            onClick={fetchEvents}
-            disabled={loading}
+            onClick={handleSync}
+            disabled={syncing}
             className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs text-slate-400 hover:bg-slate-800 hover:text-slate-200 disabled:opacity-50"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
@@ -165,7 +177,6 @@ export function CalendarTab() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Calendar legend */}
           {calendarNames.length > 0 && (
             <div className="flex items-center gap-2">
               {calendarNames.slice(0, 5).map((name) => {
@@ -191,22 +202,21 @@ export function CalendarTab() {
 
       {/* ── Main area ───────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Calendar grid */}
         <div className="flex-1 overflow-hidden">
           {loading && events.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-500">
               <RefreshCw className="h-8 w-8 animate-spin" />
-              <p className="text-sm">Fetching events from OpenClaw...</p>
+              <p className="text-sm">Loading calendar...</p>
             </div>
           ) : error && events.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-500">
               <AlertTriangle className="h-8 w-8 text-amber-500" />
               <p className="max-w-sm text-center text-sm">{error}</p>
               <button
-                onClick={fetchEvents}
+                onClick={handleSync}
                 className="mt-2 rounded-lg bg-cyan-600 px-4 py-2 text-xs text-white hover:bg-cyan-500"
               >
-                Retry
+                Sync Now
               </button>
             </div>
           ) : view === 'week' ? (
@@ -216,7 +226,7 @@ export function CalendarTab() {
           )}
         </div>
 
-        {/* Chat panel (right side, collapsible) */}
+        {/* Chat panel */}
         {chatOpen && (
           <div className="flex w-80 flex-col border-l border-slate-800 bg-slate-900/50">
             <div className="flex items-center justify-between border-b border-slate-800 px-3 py-2">

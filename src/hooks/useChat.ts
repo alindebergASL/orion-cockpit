@@ -1,36 +1,16 @@
 import { useCallback, useRef, useState } from 'react';
-import type { ChatMessage, CanvasEvent, CanvasSurface } from '../types';
-import type { OpenClawClient } from '../lib/openclaw';
+import type { ChatMessage } from '../types';
+import { api } from '../lib/api';
 
 let nextId = 1;
 function makeId() {
   return `msg-${Date.now()}-${nextId++}`;
 }
 
-export function useChat(client: OpenClawClient, sessionKey?: string) {
+export function useChat(tabContext: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [surfaces, setSurfaces] = useState<CanvasSurface[]>([]);
   const [streaming, setStreaming] = useState(false);
   const streamingRef = useRef(false);
-
-  const handleCanvas = useCallback((evt: CanvasEvent) => {
-    const id = evt.surfaceId ?? 'default';
-
-    if (evt.action === 'deleteSurface') {
-      setSurfaces((prev) => prev.filter((s) => s.id !== id));
-      return;
-    }
-
-    if (evt.html) {
-      setSurfaces((prev) => {
-        const existing = prev.find((s) => s.id === id);
-        if (existing) {
-          return prev.map((s) => (s.id === id ? { ...s, html: evt.html! } : s));
-        }
-        return [...prev, { id, html: evt.html! }];
-      });
-    }
-  }, []);
 
   const send = useCallback(
     async (content: string) => {
@@ -54,11 +34,10 @@ export function useChat(client: OpenClawClient, sessionKey?: string) {
       setStreaming(true);
       streamingRef.current = true;
 
-      const history = [...messages, userMsg];
-
       try {
-        await client.streamChat(
-          history.map(({ role, content: c }) => ({ role, content: c })),
+        await api.streamChat(
+          content.trim(),
+          tabContext,
           (chunk) => {
             setMessages((prev) =>
               prev.map((m) =>
@@ -68,8 +47,6 @@ export function useChat(client: OpenClawClient, sessionKey?: string) {
               ),
             );
           },
-          handleCanvas,
-          sessionKey,
         );
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
@@ -86,17 +63,16 @@ export function useChat(client: OpenClawClient, sessionKey?: string) {
         streamingRef.current = false;
       }
     },
-    [client, messages, handleCanvas, sessionKey],
+    [tabContext],
   );
 
   const stop = useCallback(() => {
-    client.abort();
-  }, [client]);
+    api.abort();
+  }, []);
 
   const clear = useCallback(() => {
     setMessages([]);
-    setSurfaces([]);
   }, []);
 
-  return { messages, surfaces, streaming, send, stop, clear };
+  return { messages, streaming, send, stop, clear };
 }

@@ -7,8 +7,8 @@ import {
   CheckCircle2,
   AlertTriangle,
 } from 'lucide-react';
-import { useOpenClaw } from '../../hooks/useOpenClaw';
 import type { Task } from '../../types';
+import { api } from '../../lib/api';
 
 const statusIcons: Record<Task['status'], React.FC<{ className?: string }>> = {
   open: Circle,
@@ -28,27 +28,52 @@ const priorityColors: Record<string, string> = {
   low: 'border-l-slate-600',
 };
 
+function timeAgo(isoString: string | null): string {
+  if (!isoString) return 'never';
+  const diff = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
 export function TasksTab() {
-  const { client } = useOpenClaw();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [syncedAt, setSyncedAt] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'open' | 'in_progress' | 'completed'>('all');
 
   const fetchTasks = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await client.invokeTool<{ tasks?: Task[] }>('tasks.list', {
-        status: 'open',
-      });
-      setTasks(result.tasks ?? []);
+      const result = await api.getTasks();
+      setTasks(result.tasks);
+      setSyncedAt(result.syncedAt);
     } catch {
-      setError('Could not fetch tasks from OpenClaw. Ensure the agent is running and accessible.');
+      setError('Could not load tasks. Check your connection.');
     } finally {
       setLoading(false);
     }
-  }, [client]);
+  }, []);
+
+  const handleSync = useCallback(async () => {
+    setSyncing(true);
+    setError(null);
+    try {
+      const result = await api.syncTasks();
+      setTasks(result.tasks);
+      setSyncedAt(result.syncedAt);
+    } catch {
+      setError('Sync failed. OpenClaw may be unreachable.');
+    } finally {
+      setSyncing(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchTasks();
@@ -60,19 +85,27 @@ export function TasksTab() {
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
-        <div>
-          <h2 className="text-sm font-semibold text-slate-100">Tasks</h2>
-          <p className="text-xs text-slate-500">
-            Open tasks tracked by OpenClaw
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-100">Tasks</h2>
+            <p className="text-xs text-slate-500">
+              Tasks synced from OpenClaw
+            </p>
+          </div>
+          {syncedAt && (
+            <span className="flex items-center gap-1 text-[10px] text-slate-600">
+              <Clock className="h-3 w-3" />
+              Synced {timeAgo(syncedAt)}
+            </span>
+          )}
         </div>
         <button
-          onClick={fetchTasks}
-          disabled={loading}
+          onClick={handleSync}
+          disabled={syncing}
           className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-800 hover:text-slate-200 disabled:opacity-50"
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} />
+          Sync
         </button>
       </div>
 

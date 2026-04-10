@@ -1,67 +1,81 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Trash2, FileText } from 'lucide-react';
-
-interface Note {
-  id: string;
-  title: string;
-  content: string;
-  updatedAt: number;
-}
-
-const STORAGE_KEY = 'orion-cockpit-notes';
-
-function loadNotes(): Note[] {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
-  } catch {
-    return [];
-  }
-}
-
-function saveNotes(notes: Note[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-}
+import type { Note } from '../../types';
+import { api } from '../../lib/api';
 
 export function NotesTab() {
-  const [notes, setNotes] = useState<Note[]>(loadNotes);
-  const [activeId, setActiveId] = useState<string | null>(notes[0]?.id ?? null);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [activeId, setActiveId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
+  // Load notes from backend on mount
   useEffect(() => {
-    saveNotes(notes);
-  }, [notes]);
+    api.getNotes()
+      .then((data) => {
+        setNotes(data);
+        if (data.length > 0 && data[0]) setActiveId(data[0].id);
+      })
+      .catch(() => { /* silently fail, show empty */ })
+      .finally(() => setLoading(false));
+  }, []);
 
   const activeNote = notes.find((n) => n.id === activeId);
 
-  const createNote = useCallback(() => {
-    const note: Note = {
-      id: `note-${Date.now()}`,
-      title: 'Untitled',
-      content: '',
-      updatedAt: Date.now(),
-    };
-    setNotes((prev) => [note, ...prev]);
-    setActiveId(note.id);
+  const createNote = useCallback(async () => {
+    try {
+      const note = await api.createNote('Untitled', '');
+      setNotes((prev) => [note, ...prev]);
+      setActiveId(note.id);
+    } catch {
+      // silently fail
+    }
   }, []);
 
   const deleteNote = useCallback(
-    (id: string) => {
-      setNotes((prev) => prev.filter((n) => n.id !== id));
-      if (activeId === id) setActiveId(null);
+    async (id: number) => {
+      try {
+        await api.deleteNote(id);
+        setNotes((prev) => prev.filter((n) => n.id !== id));
+        if (activeId === id) setActiveId(null);
+      } catch {
+        // silently fail
+      }
     },
     [activeId],
   );
 
   const updateNote = useCallback(
     (field: 'title' | 'content', value: string) => {
-      if (!activeId) return;
+      if (activeId === null) return;
+
+      // Optimistic update
       setNotes((prev) =>
         prev.map((n) =>
-          n.id === activeId ? { ...n, [field]: value, updatedAt: Date.now() } : n,
+          n.id === activeId ? { ...n, [field]: value, updatedAt: new Date().toISOString() } : n,
         ),
       );
+
+      // Debounced save to backend
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        const note = notes.find((n) => n.id === activeId);
+        if (!note) return;
+        const title = field === 'title' ? value : note.title;
+        const content = field === 'content' ? value : note.content;
+        api.updateNote(activeId, title, content).catch(() => {});
+      }, 300);
     },
-    [activeId],
+    [activeId, notes],
   );
+
+  if (loading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-700 border-t-cyan-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full">

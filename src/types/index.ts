@@ -18,7 +18,7 @@ export interface CanvasSurface {
 }
 
 export interface CalendarEvent {
-  id: string;
+  id: string | number;
   title: string;
   start: string;
   end: string;
@@ -29,12 +29,27 @@ export interface CalendarEvent {
 }
 
 export interface Task {
-  id: string;
+  id: string | number;
   title: string;
   status: 'open' | 'in_progress' | 'completed';
   priority?: 'low' | 'medium' | 'high';
   dueDate?: string;
   description?: string;
+  listName?: string;
+}
+
+export interface Note {
+  id: number;
+  title: string;
+  content: string;
+  updatedAt: string;
+}
+
+export interface User {
+  id: number;
+  username: string;
+  displayName: string;
+  role: 'admin' | 'user';
 }
 
 export type TabId = 'chat' | 'calendar' | 'tasks' | 'notes';

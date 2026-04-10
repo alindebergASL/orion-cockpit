@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import {
   MessageSquare,
   CalendarDays,
@@ -5,9 +6,13 @@ import {
   StickyNote,
   Wifi,
   WifiOff,
+  LogOut,
+  Settings,
 } from 'lucide-react';
 import type { TabId } from '../types';
-import { useOpenClaw } from '../hooks/useOpenClaw';
+import { useAuth } from '../contexts/AuthContext';
+import { api } from '../lib/api';
+import { UserManagement } from './admin/UserManagement';
 
 const tabs: { id: TabId; label: string; icon: React.FC<{ className?: string }> }[] = [
   { id: 'chat', label: 'Chat', icon: MessageSquare },
@@ -23,7 +28,26 @@ interface LayoutProps {
 }
 
 export function Layout({ activeTab, onTabChange, children }: LayoutProps) {
-  const { connected } = useOpenClaw();
+  const { user, logout } = useAuth();
+  const [connected, setConnected] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval>>(null);
+
+  useEffect(() => {
+    const check = async () => setConnected(await api.ping());
+    check();
+    intervalRef.current = setInterval(check, 30_000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  const initials = user?.displayName
+    ?.split(' ')
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) ?? '?';
 
   return (
     <div className="flex h-full">
@@ -52,24 +76,58 @@ export function Layout({ activeTab, onTabChange, children }: LayoutProps) {
           ))}
         </div>
 
-        {/* Connection status */}
-        <div
-          className="flex flex-col items-center gap-1 text-[10px]"
-          title={connected ? 'Connected to OpenClaw' : 'Disconnected'}
-        >
-          {connected ? (
-            <Wifi className="h-4 w-4 text-emerald-400" />
-          ) : (
-            <WifiOff className="h-4 w-4 text-red-400" />
+        {/* Bottom section: user info + status */}
+        <div className="flex flex-col items-center gap-3">
+          {/* Admin button */}
+          {user?.role === 'admin' && (
+            <button
+              onClick={() => setAdminOpen(true)}
+              className="rounded-lg p-2 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
+              title="User Management"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
           )}
-          <span className={connected ? 'text-emerald-400' : 'text-red-400'}>
-            {connected ? 'Online' : 'Offline'}
-          </span>
+
+          {/* Connection status */}
+          <div
+            className="flex flex-col items-center gap-1 text-[10px]"
+            title={connected ? 'Connected to backend' : 'Disconnected'}
+          >
+            {connected ? (
+              <Wifi className="h-4 w-4 text-emerald-400" />
+            ) : (
+              <WifiOff className="h-4 w-4 text-red-400" />
+            )}
+            <span className={connected ? 'text-emerald-400' : 'text-red-400'}>
+              {connected ? 'Online' : 'Offline'}
+            </span>
+          </div>
+
+          {/* User info + logout */}
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-[10px] font-medium text-slate-200">
+              {initials}
+            </div>
+            <span className="max-w-[64px] truncate text-[10px] text-slate-500">
+              {user?.displayName}
+            </span>
+            <button
+              onClick={logout}
+              className="rounded p-1 text-slate-600 hover:text-red-400"
+              title="Logout"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       </aside>
 
       {/* Main content */}
       <main className="flex-1 overflow-hidden">{children}</main>
+
+      {/* Admin panel overlay */}
+      {adminOpen && <UserManagement onClose={() => setAdminOpen(false)} />}
     </div>
   );
 }
