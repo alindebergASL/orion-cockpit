@@ -45,7 +45,7 @@ export function TasksTab() {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [syncedAt, setSyncedAt] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'open' | 'in_progress' | 'completed'>('all');
+  const [filter, setFilter] = useState<'all' | 'open' | 'in_progress' | 'completed'>('open');
 
   const fetchTasks = useCallback(async () => {
     setLoading(true);
@@ -111,7 +111,7 @@ export function TasksTab() {
 
       {/* Filter bar */}
       <div className="flex gap-1 border-b border-slate-800/50 px-4 py-2">
-        {(['all', 'open', 'in_progress', 'completed'] as const).map((f) => (
+        {(['open', 'in_progress', 'completed', 'all'] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
