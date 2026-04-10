@@ -63,3 +63,38 @@ usersRouter.delete('/:id', (req, res) => {
   }
   res.json({ ok: true });
 });
+
+usersRouter.put('/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const { displayName, role, password } = req.body;
+
+  const existing = getDb().prepare('SELECT id FROM users WHERE id = ?').get(id);
+  if (!existing) {
+    res.status(404).json({ error: 'User not found' });
+    return;
+  }
+
+  if (displayName !== undefined || role !== undefined) {
+    const updates: string[] = [];
+    const values: unknown[] = [];
+
+    if (displayName !== undefined) {
+      updates.push('display_name = ?');
+      values.push(displayName);
+    }
+    if (role !== undefined) {
+      updates.push('role = ?');
+      values.push(role);
+    }
+
+    values.push(id);
+    getDb().prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+  }
+
+  if (password) {
+    const hash = bcrypt.hashSync(password, 10);
+    getDb().prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, id);
+  }
+
+  res.json({ ok: true });
+});

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { X, Plus, Trash2, Shield, User as UserIcon } from 'lucide-react';
+import { X, Plus, Trash2, Shield, User as UserIcon, Pencil, Key } from 'lucide-react';
 import type { User } from '../../types';
 import { api } from '../../lib/api';
 
@@ -11,14 +11,23 @@ export function UserManagement({ onClose }: Props) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [passwordId, setPasswordId] = useState<number | null>(null);
   const [error, setError] = useState('');
 
-  // Form state
+  // Create form state
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [role, setRole] = useState('user');
   const [formError, setFormError] = useState('');
+
+  // Edit form state
+  const [editDisplayName, setEditDisplayName] = useState('');
+  const [editRole, setEditRole] = useState('');
+
+  // Password form state
+  const [newPassword, setNewPassword] = useState('');
 
   const loadUsers = useCallback(async () => {
     try {
@@ -51,6 +60,36 @@ export function UserManagement({ onClose }: Props) {
     }
   };
 
+  const handleEdit = (user: User) => {
+    setEditingId(user.id);
+    setEditDisplayName(user.displayName);
+    setEditRole(user.role);
+    setPasswordId(null);
+  };
+
+  const handleSaveEdit = async (id: number) => {
+    setFormError('');
+    try {
+      await api.updateUser(id, { displayName: editDisplayName, role: editRole });
+      setEditingId(null);
+      loadUsers();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Failed to update user');
+    }
+  };
+
+  const handleChangePassword = async (id: number) => {
+    if (!newPassword) return;
+    setFormError('');
+    try {
+      await api.updateUser(id, { password: newPassword });
+      setNewPassword('');
+      setPasswordId(null);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Failed to change password');
+    }
+  };
+
   const handleDelete = async (id: number, name: string) => {
     if (!confirm(`Delete user "${name}"? This cannot be undone.`)) return;
     try {
@@ -76,7 +115,7 @@ export function UserManagement({ onClose }: Props) {
         </div>
 
         {/* Content */}
-        <div className="max-h-96 overflow-y-auto p-5">
+        <div className="max-h-[28rem] overflow-y-auto p-5">
           {error && (
             <p className="mb-4 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">{error}</p>
           )}
@@ -88,36 +127,121 @@ export function UserManagement({ onClose }: Props) {
           ) : (
             <div className="space-y-2">
               {users.map((u) => (
-                <div
-                  key={u.id}
-                  className="flex items-center justify-between rounded-lg border border-slate-800 px-4 py-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-xs font-medium text-slate-200">
-                      {u.displayName.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)}
+                <div key={u.id}>
+                  <div className="flex items-center justify-between rounded-lg border border-slate-800 px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-xs font-medium text-slate-200">
+                        {u.displayName.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)}
+                      </div>
+                      <div>
+                        <p className="text-sm text-slate-200">{u.displayName}</p>
+                        <p className="text-[11px] text-slate-500">@{u.username}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm text-slate-200">{u.displayName}</p>
-                      <p className="text-[11px] text-slate-500">@{u.username}</p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="flex items-center gap-1 text-[11px] text-slate-500">
+                        {u.role === 'admin' ? (
+                          <Shield className="h-3 w-3 text-cyan-400" />
+                        ) : (
+                          <UserIcon className="h-3 w-3" />
+                        )}
+                        {u.role}
+                      </span>
+                      <button
+                        onClick={() => handleEdit(u)}
+                        className="rounded p-1 text-slate-600 hover:text-cyan-400"
+                        title="Edit user"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => { setPasswordId(u.id); setEditingId(null); setNewPassword(''); }}
+                        className="rounded p-1 text-slate-600 hover:text-amber-400"
+                        title="Change password"
+                      >
+                        <Key className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(u.id, u.displayName)}
+                        className="rounded p-1 text-slate-600 hover:text-red-400"
+                        title="Delete user"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1 text-[11px] text-slate-500">
-                      {u.role === 'admin' ? (
-                        <Shield className="h-3 w-3 text-cyan-400" />
-                      ) : (
-                        <UserIcon className="h-3 w-3" />
-                      )}
-                      {u.role}
-                    </span>
-                    <button
-                      onClick={() => handleDelete(u.id, u.displayName)}
-                      className="rounded p-1 text-slate-600 hover:text-red-400"
-                      title="Delete user"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+
+                  {/* Inline edit form */}
+                  {editingId === u.id && (
+                    <div className="mt-1 rounded-lg border border-slate-800 bg-slate-800/50 p-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="mb-1 block text-[11px] text-slate-500">Display Name</label>
+                          <input
+                            value={editDisplayName}
+                            onChange={(e) => setEditDisplayName(e.target.value)}
+                            className="w-full rounded-md border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[11px] text-slate-500">Role</label>
+                          <select
+                            value={editRole}
+                            onChange={(e) => setEditRole(e.target.value)}
+                            className="w-full rounded-md border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600"
+                          >
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        </div>
+                      </div>
+                      {formError && <p className="mt-2 text-xs text-red-400">{formError}</p>}
+                      <div className="mt-3 flex justify-end gap-2">
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="rounded-md px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => handleSaveEdit(u.id)}
+                          className="rounded-md bg-cyan-600 px-3 py-1.5 text-xs text-white hover:bg-cyan-500"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Inline password change */}
+                  {passwordId === u.id && (
+                    <div className="mt-1 rounded-lg border border-slate-800 bg-slate-800/50 p-3">
+                      <label className="mb-1 block text-[11px] text-slate-500">New Password for @{u.username}</label>
+                      <input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Enter new password"
+                        className="w-full rounded-md border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600"
+                      />
+                      {formError && <p className="mt-2 text-xs text-red-400">{formError}</p>}
+                      <div className="mt-3 flex justify-end gap-2">
+                        <button
+                          onClick={() => setPasswordId(null)}
+                          className="rounded-md px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => handleChangePassword(u.id)}
+                          disabled={!newPassword}
+                          className="rounded-md bg-amber-600 px-3 py-1.5 text-xs text-white hover:bg-amber-500 disabled:opacity-50"
+                        >
+                          Change Password
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

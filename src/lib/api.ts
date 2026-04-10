@@ -166,6 +166,13 @@ class ApiClient {
     });
   }
 
+  async updateUser(id: number, data: { displayName?: string; role?: string; password?: string }): Promise<void> {
+    await this.request(`/api/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
   async deleteUser(id: number): Promise<void> {
     await this.request(`/api/users/${id}`, { method: 'DELETE' });
   }
