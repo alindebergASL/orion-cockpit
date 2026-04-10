@@ -15,13 +15,18 @@ const tabComponents: Record<TabId, React.FC> = {
   notes: NotesTab,
 };
 
+const tabEntries = Object.entries(tabComponents) as [TabId, React.FC][];
+
 function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabId>('chat');
-  const ActiveComponent = tabComponents[activeTab];
 
   return (
     <Layout activeTab={activeTab} onTabChange={setActiveTab}>
-      <ActiveComponent />
+      {tabEntries.map(([id, Component]) => (
+        <div key={id} className={id === activeTab ? 'h-full' : 'hidden'}>
+          <Component />
+        </div>
+      ))}
     </Layout>
   );
 }
