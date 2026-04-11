@@ -49,6 +49,45 @@ tasksRouter.post('/sync', async (req, res) => {
   }
 });
 
+tasksRouter.post('/', async (req, res) => {
+  const userId = req.user!.id;
+  const { title, list, priority, dueDate, description } = req.body;
+
+  if (!title) {
+    res.status(400).json({ error: 'title is required' });
+    return;
+  }
+
+  // Insert locally first
+  const now = new Date().toISOString();
+  const result = getDb()
+    .prepare('INSERT INTO tasks (user_id, title, status, priority, due_date, description, list_name, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(userId, title, 'open', priority || null, dueDate || null, description || null, list || null, now);
+
+  res.status(201).json({
+    id: result.lastInsertRowid,
+    title,
+    status: 'open',
+    priority: priority || null,
+    dueDate: dueDate || null,
+    description: description || null,
+    listName: list || null,
+  });
+
+  // Sync to OpenClaw in the background
+  const user = getDb().prepare('SELECT display_name FROM users WHERE id = ?')
+    .get(userId) as { display_name: string };
+
+  openclawClient.chatOnce([
+    {
+      role: 'user',
+      content: `Create a task for ${user.display_name}: "${title}"${list ? ` in list "${list}"` : ''}${priority ? `, priority: ${priority}` : ''}${dueDate ? `, due: ${dueDate}` : ''}. Just confirm briefly.`,
+    },
+  ]).then(() => syncTasks(userId)).catch((err) =>
+    console.error('Background task sync failed:', err.message),
+  );
+});
+
 tasksRouter.put('/:id/status', async (req, res) => {
   const userId = req.user!.id;
   const taskId = parseInt(req.params.id, 10);

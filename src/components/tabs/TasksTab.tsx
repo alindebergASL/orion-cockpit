@@ -6,9 +6,11 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
+  Plus,
 } from 'lucide-react';
 import type { Task } from '../../types';
 import { api } from '../../lib/api';
+import { showToast } from '../Toast';
 
 const statusIcons: Record<Task['status'], React.FC<{ className?: string }>> = {
   open: Circle,
@@ -68,8 +70,10 @@ export function TasksTab() {
       const result = await api.syncTasks();
       setTasks(result.tasks);
       setSyncedAt(result.syncedAt);
+      showToast(`Synced ${result.tasks.length} tasks`, 'success');
     } catch {
       setError('Sync failed. OpenClaw may be unreachable.');
+      showToast('Task sync failed', 'error');
     } finally {
       setSyncing(false);
     }
@@ -78,6 +82,24 @@ export function TasksTab() {
   useEffect(() => {
     fetchTasks();
   }, [fetchTasks]);
+
+  // Auto-refresh when chat tool calls modify data
+  useEffect(() => {
+    const handler = () => fetchTasks();
+    window.addEventListener('orion-data-changed', handler);
+    return () => window.removeEventListener('orion-data-changed', handler);
+  }, [fetchTasks]);
+
+  const [quickAdd, setQuickAdd] = useState('');
+
+  const handleQuickAdd = useCallback(async () => {
+    if (!quickAdd.trim()) return;
+    try {
+      const task = await api.createTask(quickAdd.trim());
+      setTasks((prev) => [task, ...prev]);
+      setQuickAdd('');
+    } catch { /* ignore */ }
+  }, [quickAdd]);
 
   const handleToggleStatus = useCallback(async (taskId: number | string, currentStatus: string) => {
     const nextStatus = currentStatus === 'completed' ? 'open' : 'completed';
@@ -140,6 +162,26 @@ export function TasksTab() {
             {f.replace('_', ' ')}
           </button>
         ))}
+      </div>
+
+      {/* Quick add */}
+      <div className="flex items-center gap-2 border-b border-slate-800/50 px-4 py-2">
+        <Plus className="h-3.5 w-3.5 text-slate-600" />
+        <input
+          value={quickAdd}
+          onChange={(e) => setQuickAdd(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleQuickAdd(); }}
+          placeholder="Add a task..."
+          className="flex-1 bg-transparent text-sm text-slate-200 outline-none placeholder-slate-600"
+        />
+        {quickAdd && (
+          <button
+            onClick={handleQuickAdd}
+            className="rounded-md bg-cyan-600 px-2.5 py-1 text-[11px] text-white hover:bg-cyan-500"
+          >
+            Add
+          </button>
+        )}
       </div>
 
       {/* Task list */}

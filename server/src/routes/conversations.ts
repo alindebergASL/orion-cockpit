@@ -68,6 +68,35 @@ conversationsRouter.get('/:id/messages', (req, res) => {
   })));
 });
 
+// Search conversations by message content
+conversationsRouter.get('/search', (req, res) => {
+  const userId = req.user!.id;
+  const query = (req.query.q as string) || '';
+  if (!query.trim()) {
+    res.json([]);
+    return;
+  }
+
+  const rows = getDb()
+    .prepare(`
+      SELECT DISTINCT c.id, c.title, c.tab, c.created_at, c.updated_at
+      FROM conversations c
+      JOIN chat_messages m ON m.conversation_id = c.id
+      WHERE c.user_id = ? AND m.content LIKE ?
+      ORDER BY c.updated_at DESC
+      LIMIT 10
+    `)
+    .all(userId, `%${query}%`) as { id: number; title: string; tab: string; created_at: string; updated_at: string }[];
+
+  res.json(rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    tab: r.tab,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  })));
+});
+
 // Delete a conversation
 conversationsRouter.delete('/:id', (req, res) => {
   const userId = req.user!.id;

@@ -92,15 +92,38 @@ export function HomeTab() {
   return (
     <div className="flex h-full flex-col overflow-y-auto">
       <div className="mx-auto w-full max-w-2xl px-6 py-8">
-        {/* Greeting */}
+        {/* Greeting + briefing */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <GreetingIcon className="h-7 w-7 text-amber-400" />
-            <h1 className="text-2xl font-semibold text-slate-100">
+            <h1 className="text-2xl font-semibold text-th-text">
               {greeting.text}, {user?.displayName?.split(' ')[0]}
             </h1>
           </div>
-          <p className="text-sm text-slate-500 ml-10">{todayStr}</p>
+          <p className="text-sm text-th-text-muted ml-10 mb-3">{todayStr}</p>
+
+          {/* Morning briefing */}
+          <div className="ml-10 rounded-lg border border-th-border bg-th-surface px-4 py-3 text-sm text-th-text-secondary">
+            {(() => {
+              const todayEvents = upcomingEvents.filter((e) => isToday(e.start));
+              const parts: string[] = [];
+              if (todayEvents.length === 0) {
+                parts.push('No events scheduled for today.');
+              } else {
+                parts.push(`You have ${todayEvents.length} event${todayEvents.length > 1 ? 's' : ''} today.`);
+                const next = todayEvents[0];
+                if (next && !next.allDay) {
+                  parts.push(`Next up: ${next.title} at ${formatEventTime(next)}.`);
+                }
+              }
+              if (activeTasks.length > 0) {
+                parts.push(`${activeTasks.length} open task${activeTasks.length > 1 ? 's' : ''} remaining.`);
+              } else {
+                parts.push('All tasks complete!');
+              }
+              return parts.join(' ');
+            })()}
+          </div>
         </div>
 
         <div className="grid gap-6">
@@ -108,11 +131,11 @@ export function HomeTab() {
           <section>
             <div className="flex items-center gap-2 mb-3">
               <CalendarDays className="h-4 w-4 text-cyan-400" />
-              <h2 className="text-sm font-semibold text-slate-300">Upcoming</h2>
+              <h2 className="text-sm font-semibold text-th-text-secondary">Upcoming</h2>
             </div>
 
             {upcomingEvents.length === 0 ? (
-              <div className="rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-6 text-center text-sm text-slate-600">
+              <div className="rounded-lg border border-th-border bg-th-surface px-4 py-6 text-center text-sm text-th-text-muted">
                 No upcoming events. Hit sync on the Calendar tab to load.
               </div>
             ) : (
@@ -123,19 +146,19 @@ export function HomeTab() {
                   return (
                     <div key={`${event.id}-${i}`}>
                       {showDayHeader && (
-                        <p className="mt-2 mb-1 text-[11px] font-medium text-slate-500 uppercase tracking-wider">
+                        <p className="mt-2 mb-1 text-[11px] font-medium text-th-text-secondary uppercase tracking-wider">
                           {dayLabel(event.start)}
                         </p>
                       )}
-                      <div className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-2.5">
-                        <span className="w-16 shrink-0 text-xs text-slate-500">{formatEventTime(event)}</span>
+                      <div className="flex items-center gap-3 rounded-lg border border-th-border bg-th-surface px-4 py-2.5">
+                        <span className="w-16 shrink-0 text-xs text-th-text-secondary">{formatEventTime(event)}</span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm text-slate-200">{event.title}</p>
+                          <p className="truncate text-sm text-th-text">{event.title}</p>
                           {event.location && (
-                            <p className="truncate text-[11px] text-slate-600">{event.location}</p>
+                            <p className="truncate text-[11px] text-th-text-muted">{event.location}</p>
                           )}
                         </div>
-                        <span className="shrink-0 text-[10px] text-slate-600">{event.calendar}</span>
+                        <span className="shrink-0 text-[10px] text-th-text-muted">{event.calendar}</span>
                       </div>
                     </div>
                   );
@@ -148,7 +171,7 @@ export function HomeTab() {
           <section>
             <div className="flex items-center gap-2 mb-3">
               <ListChecks className="h-4 w-4 text-cyan-400" />
-              <h2 className="text-sm font-semibold text-slate-300">Tasks</h2>
+              <h2 className="text-sm font-semibold text-th-text-secondary">Tasks</h2>
               {activeTasks.length > 0 && (
                 <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-400">
                   {activeTasks.length} open
@@ -157,7 +180,7 @@ export function HomeTab() {
             </div>
 
             {activeTasks.length === 0 ? (
-              <div className="rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-6 text-center text-sm text-slate-600">
+              <div className="rounded-lg border border-th-border bg-th-surface px-4 py-6 text-center text-sm text-th-text-muted">
                 No open tasks. You're all caught up!
               </div>
             ) : (
@@ -165,17 +188,17 @@ export function HomeTab() {
                 {activeTasks.map((task) => (
                   <div
                     key={task.id}
-                    className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-2.5"
+                    className="flex items-center gap-3 rounded-lg border border-th-border bg-th-surface px-4 py-2.5"
                   >
                     <div className={`h-2 w-2 shrink-0 rounded-full ${
                       task.priority === 'high' ? 'bg-red-500' :
                       task.priority === 'medium' ? 'bg-amber-500' : 'bg-slate-600'
                     }`} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-slate-200">{task.title}</p>
+                      <p className="truncate text-sm text-th-text">{task.title}</p>
                     </div>
                     {task.dueDate && (
-                      <span className="flex shrink-0 items-center gap-1 text-[11px] text-slate-600">
+                      <span className="flex shrink-0 items-center gap-1 text-[11px] text-th-text-muted">
                         <Clock className="h-3 w-3" />
                         {dayLabel(task.dueDate)}
                       </span>

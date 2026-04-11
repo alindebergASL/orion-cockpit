@@ -17,6 +17,7 @@ import { WeekView } from '../calendar/WeekView';
 import { MonthView } from '../calendar/MonthView';
 import type { CalendarEvent } from '../../types';
 import { api } from '../../lib/api';
+import { showToast } from '../Toast';
 import {
   startOfWeek,
   addDays,
@@ -77,8 +78,10 @@ export function CalendarTab() {
       const result = await api.syncCalendar();
       setEvents(result.events);
       setSyncedAt(result.syncedAt);
+      showToast(`Synced ${result.events.length} events`, 'success');
     } catch {
       setError('Sync failed. OpenClaw may be unreachable.');
+      showToast('Calendar sync failed', 'error');
     } finally {
       setSyncing(false);
     }
@@ -103,6 +106,13 @@ export function CalendarTab() {
       hasFetched.current = true;
       fetchEvents();
     }
+  }, [fetchEvents]);
+
+  // Auto-refresh when chat tool calls modify data
+  useEffect(() => {
+    const handler = () => fetchEvents();
+    window.addEventListener('orion-data-changed', handler);
+    return () => window.removeEventListener('orion-data-changed', handler);
   }, [fetchEvents]);
 
   // ── Navigation ────────────────────────────────────────────

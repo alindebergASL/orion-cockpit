@@ -93,6 +93,9 @@ class ApiClient {
           if (parsed.type === 'text' && parsed.content) {
             onText(parsed.content);
           }
+          if (parsed.type === 'tool_result') {
+            window.dispatchEvent(new CustomEvent('orion-data-changed'));
+          }
           if (parsed.type === 'error') {
             throw new Error(parsed.error);
           }
@@ -142,6 +145,13 @@ class ApiClient {
 
   async syncTasks(): Promise<{ tasks: Task[]; syncedAt: string }> {
     return this.request('/api/tasks/sync', { method: 'POST' });
+  }
+
+  async createTask(title: string): Promise<Task> {
+    return this.request('/api/tasks', {
+      method: 'POST',
+      body: JSON.stringify({ title }),
+    });
   }
 
   async updateTaskStatus(id: number, status: string): Promise<void> {
@@ -219,6 +229,10 @@ class ApiClient {
 
   async getConversationMessages(id: number): Promise<{ role: string; content: string; timestamp: string }[]> {
     return this.request(`/api/conversations/${id}/messages`);
+  }
+
+  async searchConversations(query: string): Promise<Conversation[]> {
+    return this.request(`/api/conversations/search?q=${encodeURIComponent(query)}`);
   }
 
   async deleteConversation(id: number): Promise<void> {

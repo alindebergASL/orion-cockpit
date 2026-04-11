@@ -24,15 +24,15 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex h-full items-center justify-center bg-slate-950">
+    <div className="flex h-full items-center justify-center bg-th-base">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center gap-3">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-600 text-lg font-bold tracking-tight">
             OC
           </div>
-          <h1 className="text-xl font-semibold text-slate-100">Orion Cockpit</h1>
-          <p className="text-sm text-slate-500">Sign in to your dashboard</p>
+          <h1 className="text-xl font-semibold text-th-text">Orion Cockpit</h1>
+          <p className="text-sm text-th-text-muted">Sign in to your dashboard</p>
         </div>
 
         {/* Form */}
@@ -48,7 +48,7 @@ export function LoginPage() {
               onChange={(e) => setUsername(e.target.value)}
               autoComplete="username"
               autoFocus
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-slate-100 outline-none placeholder-slate-600 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600"
+              className="w-full rounded-lg border border-th-border-strong bg-th-surface px-3 py-2.5 text-sm text-slate-100 outline-none placeholder-slate-600 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600"
               placeholder="Enter username"
             />
           </div>
@@ -63,7 +63,7 @@ export function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-slate-100 outline-none placeholder-slate-600 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600"
+              className="w-full rounded-lg border border-th-border-strong bg-th-surface px-3 py-2.5 text-sm text-slate-100 outline-none placeholder-slate-600 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600"
               placeholder="Enter password"
             />
           </div>

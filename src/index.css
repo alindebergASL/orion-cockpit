@@ -7,4 +7,38 @@
     scrollbar-width: thin;
     scrollbar-color: #475569 transparent;
   }
+
+  /* Theme: dark (default) */
+  :root, .dark {
+    --color-bg-base: #020617;
+    --color-bg-surface: #0f172a;
+    --color-bg-elevated: #1e293b;
+    --color-bg-input: #1e293b;
+    --color-text-primary: #f1f5f9;
+    --color-text-secondary: #94a3b8;
+    --color-text-muted: #475569;
+    --color-border: #1e293b;
+    --color-border-strong: #334155;
+  }
+
+  /* Theme: light */
+  .light {
+    --color-bg-base: #ffffff;
+    --color-bg-surface: #f8fafc;
+    --color-bg-elevated: #f1f5f9;
+    --color-bg-input: #ffffff;
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #475569;
+    --color-text-muted: #94a3b8;
+    --color-border: #e2e8f0;
+    --color-border-strong: #cbd5e1;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+
+  /* Apply theme variables to body */
+  body {
+    background-color: var(--color-bg-base);
+    color: var(--color-text-primary);
+    transition: background-color 0.2s, color 0.2s;
+  }
 }
