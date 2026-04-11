@@ -52,4 +52,12 @@ export interface User {
   role: 'admin' | 'user';
 }
 
+export interface Conversation {
+  id: number;
+  title: string;
+  tab: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type TabId = 'chat' | 'calendar' | 'tasks' | 'notes';

@@ -10,6 +10,7 @@ import { chatRouter } from './routes/chat.js';
 import { calendarRouter } from './routes/calendar.js';
 import { tasksRouter } from './routes/tasks.js';
 import { notesRouter } from './routes/notes.js';
+import { conversationsRouter } from './routes/conversations.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -22,6 +23,7 @@ app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/chat', chatRouter);
+app.use('/api/conversations', conversationsRouter);
 app.use('/api/calendar', calendarRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/notes', notesRouter);

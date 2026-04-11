@@ -52,10 +52,10 @@ Call tools only when:
 Keep responses conversational and helpful. You know the user personally.`;
 }
 
-function loadChatHistory(userId: number, tab: string, limit = 50): LLMMessage[] {
+function loadConversationHistory(conversationId: number, limit = 50): LLMMessage[] {
   const rows = getDb()
-    .prepare('SELECT role, content FROM chat_messages WHERE user_id = ? AND tab = ? ORDER BY id DESC LIMIT ?')
-    .all(userId, tab, limit) as { role: string; content: string }[];
+    .prepare('SELECT role, content FROM chat_messages WHERE conversation_id = ? ORDER BY id DESC LIMIT ?')
+    .all(conversationId, limit) as { role: string; content: string }[];
 
   return rows.reverse().map((r) => ({
     role: r.role as LLMMessage['role'],
@@ -63,15 +63,32 @@ function loadChatHistory(userId: number, tab: string, limit = 50): LLMMessage[] 
   }));
 }
 
-function saveChatMessage(userId: number, tab: string, role: string, content: string): void {
+function saveChatMessage(userId: number, tab: string, conversationId: number, role: string, content: string): void {
   getDb()
-    .prepare('INSERT INTO chat_messages (user_id, tab, role, content) VALUES (?, ?, ?, ?)')
-    .run(userId, tab, role, content);
+    .prepare('INSERT INTO chat_messages (user_id, tab, conversation_id, role, content) VALUES (?, ?, ?, ?, ?)')
+    .run(userId, tab, conversationId, role, content);
+}
+
+function updateConversationTitle(conversationId: number, firstMessage: string): void {
+  const title = firstMessage.length > 50 ? firstMessage.slice(0, 50) + '...' : firstMessage;
+  getDb()
+    .prepare("UPDATE conversations SET title = ?, updated_at = datetime('now') WHERE id = ? AND title = 'New Chat'")
+    .run(title, conversationId);
+}
+
+function touchConversation(conversationId: number): void {
+  getDb()
+    .prepare("UPDATE conversations SET updated_at = datetime('now') WHERE id = ?")
+    .run(conversationId);
 }
 
 chatRouter.post('/', async (req, res) => {
   const user = req.user!;
-  const { message, tabContext } = req.body as { message: string; tabContext?: string };
+  const { message, tabContext, conversationId } = req.body as {
+    message: string;
+    tabContext?: string;
+    conversationId?: number;
+  };
 
   if (!message) {
     res.status(400).json({ error: 'message is required' });
@@ -79,6 +96,25 @@ chatRouter.post('/', async (req, res) => {
   }
 
   const tab = tabContext || 'chat';
+
+  // Resolve conversation
+  let convId = conversationId;
+  if (!convId) {
+    // Create a new conversation if none provided
+    const result = getDb()
+      .prepare('INSERT INTO conversations (user_id, tab, title) VALUES (?, ?, ?)')
+      .run(user.id, tab, 'New Chat');
+    convId = result.lastInsertRowid as number;
+  } else {
+    // Verify ownership
+    const conv = getDb()
+      .prepare('SELECT id FROM conversations WHERE id = ? AND user_id = ?')
+      .get(convId, user.id);
+    if (!conv) {
+      res.status(404).json({ error: 'Conversation not found' });
+      return;
+    }
+  }
 
   // Set up SSE
   res.setHeader('Content-Type', 'text/event-stream');
@@ -90,13 +126,20 @@ chatRouter.post('/', async (req, res) => {
     res.write(`data: ${data}\n\n`);
   };
 
+  // Send conversation ID so frontend can track it
+  sendSSE(JSON.stringify({ type: 'conversation', conversationId: convId }));
+
   try {
     const provider = getProvider('chat', config.llm.tiers);
     const systemPrompt = buildSystemPrompt(user);
-    const history = loadChatHistory(user.id, tab);
+    const history = loadConversationHistory(convId);
 
     // Save user message
-    saveChatMessage(user.id, tab, 'user', message);
+    saveChatMessage(user.id, tab, convId, 'user', message);
+
+    // Auto-title from first message
+    updateConversationTitle(convId, message);
+    touchConversation(convId);
 
     // Build message list
     const messages: LLMMessage[] = [
@@ -106,7 +149,7 @@ chatRouter.post('/', async (req, res) => {
 
     let fullResponse = '';
 
-    // Tool execution loop — LLM may call tools and we need to feed results back
+    // Tool execution loop
     const MAX_TOOL_ROUNDS = 10;
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       let hasToolCalls = false;
@@ -131,7 +174,6 @@ chatRouter.post('/', async (req, res) => {
 
       if (!hasToolCalls) break;
 
-      // Build assistant message with text + tool_use blocks
       const assistantBlocks: LLMContentBlock[] = [];
       if (roundText) {
         assistantBlocks.push({ type: 'text', text: roundText });
@@ -141,7 +183,6 @@ chatRouter.post('/', async (req, res) => {
       }
       messages.push({ role: 'assistant', content: assistantBlocks });
 
-      // Execute all tool calls and build tool result blocks
       const resultBlocks: LLMContentBlock[] = [];
       for (const tc of toolCalls) {
         sendSSE(JSON.stringify({ type: 'tool_executing', name: tc.name }));
@@ -154,7 +195,7 @@ chatRouter.post('/', async (req, res) => {
 
     // Save assistant response
     if (fullResponse) {
-      saveChatMessage(user.id, tab, 'assistant', fullResponse);
+      saveChatMessage(user.id, tab, convId, 'assistant', fullResponse);
     }
 
     sendSSE('[DONE]');

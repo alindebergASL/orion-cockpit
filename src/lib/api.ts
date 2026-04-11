@@ -1,4 +1,4 @@
-import type { User, CalendarEvent, Task, Note } from '../types';
+import type { User, CalendarEvent, Task, Note, Conversation } from '../types';
 
 class ApiClient {
   private token: string | null = null;
@@ -52,6 +52,8 @@ class ApiClient {
     message: string,
     tabContext: string,
     onText: (chunk: string) => void,
+    conversationId?: number,
+    onConversationId?: (id: number) => void,
   ): Promise<void> {
     this.abortController = new AbortController();
 
@@ -59,7 +61,7 @@ class ApiClient {
       method: 'POST',
       headers: this.headers(),
       signal: this.abortController.signal,
-      body: JSON.stringify({ message, tabContext }),
+      body: JSON.stringify({ message, tabContext, conversationId }),
     });
 
     if (!res.ok) {
@@ -85,6 +87,9 @@ class ApiClient {
 
         try {
           const parsed = JSON.parse(data);
+          if (parsed.type === 'conversation' && parsed.conversationId && onConversationId) {
+            onConversationId(parsed.conversationId);
+          }
           if (parsed.type === 'text' && parsed.content) {
             onText(parsed.content);
           }
@@ -175,6 +180,27 @@ class ApiClient {
 
   async deleteUser(id: number): Promise<void> {
     await this.request(`/api/users/${id}`, { method: 'DELETE' });
+  }
+
+  // ── Conversations ────────────────────────────────────────
+
+  async getConversations(tab = 'chat', limit = 5): Promise<Conversation[]> {
+    return this.request(`/api/conversations?tab=${tab}&limit=${limit}`);
+  }
+
+  async createConversation(tab = 'chat'): Promise<Conversation> {
+    return this.request('/api/conversations', {
+      method: 'POST',
+      body: JSON.stringify({ tab }),
+    });
+  }
+
+  async getConversationMessages(id: number): Promise<{ role: string; content: string; timestamp: string }[]> {
+    return this.request(`/api/conversations/${id}/messages`);
+  }
+
+  async deleteConversation(id: number): Promise<void> {
+    await this.request(`/api/conversations/${id}`, { method: 'DELETE' });
   }
 
   // ── Health ───────────────────────────────────────────────
