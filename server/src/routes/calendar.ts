@@ -60,23 +60,37 @@ calendarRouter.post('/events', async (req, res) => {
     return;
   }
 
+  // Insert into SQLite immediately so it shows up in the UI
+  const now = new Date().toISOString();
+  getDb()
+    .prepare(`INSERT INTO calendar_events (user_id, title, start, end, calendar, location, description, all_day, synced_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(userId, title, start, end, calendar || '', location || null, description || null, allDay ? 1 : 0, now);
+
+  // Return immediately with updated events
+  const rows = getDb()
+    .prepare('SELECT id, external_id, user_id, title, start, end, calendar, location, description, all_day, synced_at FROM calendar_events WHERE user_id = ? OR user_id IS NULL ORDER BY start ASC')
+    .all(userId) as Record<string, unknown>[];
+
+  res.status(201).json({
+    events: rows.map((r) => ({
+      id: r.id, externalId: r.external_id, title: r.title,
+      start: r.start, end: r.end, calendar: r.calendar,
+      location: r.location, description: r.description, allDay: !!r.all_day,
+    })),
+    syncedAt: now,
+  });
+
+  // Sync to OpenClaw in the background (don't await)
   const user = getDb().prepare('SELECT display_name FROM users WHERE id = ?')
     .get(userId) as { display_name: string };
 
-  try {
-    // Ask OpenClaw to create the event in Google Calendar
-    await openclawClient.chatOnce([
-      {
-        role: 'user',
-        content: `Create a calendar event for ${user.display_name}: title: "${title}", start: ${start}, end: ${end}${calendar ? `, calendar: "${calendar}"` : ''}${location ? `, location: "${location}"` : ''}${description ? `, description: "${description}"` : ''}${allDay ? ', all day event' : ''}. Just confirm briefly.`,
-      },
-    ]);
-
-    // Re-sync to pick up the new event
-    const events = await syncCalendar(userId);
-    res.status(201).json({ events, syncedAt: new Date().toISOString() });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Failed to create event';
-    res.status(502).json({ error: message });
-  }
+  openclawClient.chatOnce([
+    {
+      role: 'user',
+      content: `Create a calendar event for ${user.display_name}: title: "${title}", start: ${start}, end: ${end}${calendar ? `, calendar: "${calendar}"` : ''}${location ? `, location: "${location}"` : ''}${description ? `, description: "${description}"` : ''}${allDay ? ', all day event' : ''}. Just confirm briefly.`,
+    },
+  ]).then(() => syncCalendar(userId)).catch((err) =>
+    console.error('Background calendar sync failed:', err.message),
+  );
 });
