@@ -18,7 +18,7 @@ export async function syncCalendar(userId: number): Promise<unknown[]> {
   const response = await openclawClient.chatOnce([
     {
       role: 'user',
-      content: `Return ${user.display_name}'s calendar events for the next 14 days as JSON array. Each event should have: id, title, start (ISO), end (ISO), calendar, location, description, allDay (boolean). Return ONLY the JSON array, no other text.`,
+      content: `Return ALL calendar events for the next 14 days from ALL of ${user.display_name}'s Google Calendars, including any shared or family calendars (such as "Lindeberg Family"). Each event should have: id, title, start (ISO), end (ISO), calendar (the calendar name it belongs to), location, description, allDay (boolean). Return ONLY the JSON array, no other text.`,
     },
   ]);
 
