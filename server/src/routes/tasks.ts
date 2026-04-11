@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { getDb } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
 import { syncTasks } from '../services/sync.js';
+import { openclawClient } from '../services/openclaw.js';
 
 export const tasksRouter = Router();
 
@@ -48,7 +49,7 @@ tasksRouter.post('/sync', async (req, res) => {
   }
 });
 
-tasksRouter.put('/:id/status', (req, res) => {
+tasksRouter.put('/:id/status', async (req, res) => {
   const userId = req.user!.id;
   const taskId = parseInt(req.params.id, 10);
   const { status } = req.body as { status: string };
@@ -58,13 +59,36 @@ tasksRouter.put('/:id/status', (req, res) => {
     return;
   }
 
-  const result = getDb()
-    .prepare('UPDATE tasks SET status = ? WHERE id = ? AND (user_id = ? OR user_id IS NULL)')
-    .run(status, taskId, userId);
+  // Get the task details for OpenClaw
+  const task = getDb()
+    .prepare('SELECT title, external_id FROM tasks WHERE id = ? AND (user_id = ? OR user_id IS NULL)')
+    .get(taskId, userId) as { title: string; external_id: string | null } | undefined;
 
-  if (result.changes === 0) {
+  if (!task) {
     res.status(404).json({ error: 'Task not found' });
     return;
   }
+
+  // Update locally first
+  getDb()
+    .prepare('UPDATE tasks SET status = ? WHERE id = ?')
+    .run(status, taskId);
+
+  // Sync the change to OpenClaw/Google Tasks
+  const user = getDb().prepare('SELECT display_name FROM users WHERE id = ?')
+    .get(userId) as { display_name: string };
+
+  try {
+    await openclawClient.chatOnce([
+      {
+        role: 'user',
+        content: `Mark the task "${task.title}" as ${status === 'completed' ? 'completed' : 'not completed (open)'} for ${user.display_name}. Just confirm briefly.`,
+      },
+    ]);
+  } catch {
+    // OpenClaw sync failed, but local update succeeded — log but don't fail
+    console.error(`Failed to sync task status to OpenClaw for task ${taskId}`);
+  }
+
   res.json({ ok: true });
 });

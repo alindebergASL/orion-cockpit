@@ -119,6 +119,21 @@ class ApiClient {
     return this.request('/api/calendar/sync', { method: 'POST' });
   }
 
+  async createCalendarEvent(data: {
+    title: string;
+    start: string;
+    end: string;
+    calendar?: string;
+    location?: string;
+    description?: string;
+    allDay?: boolean;
+  }): Promise<{ events: CalendarEvent[]; syncedAt: string }> {
+    return this.request('/api/calendar/events', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   // ── Tasks ────────────────────────────────────────────────
 
   async getTasks(): Promise<{ tasks: Task[]; syncedAt: string | null }> {

@@ -8,6 +8,7 @@ import {
   X,
   AlertTriangle,
   Clock,
+  Plus,
 } from 'lucide-react';
 import { useChat } from '../../hooks/useChat';
 import { MessageList } from '../chat/MessageList';
@@ -48,6 +49,7 @@ export function CalendarTab() {
   const [anchor, setAnchor] = useState(new Date());
   const [chatOpen, setChatOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const hasFetched = useRef(false);
 
   const weekStart = startOfWeek(anchor);
@@ -79,6 +81,20 @@ export function CalendarTab() {
       setError('Sync failed. OpenClaw may be unreachable.');
     } finally {
       setSyncing(false);
+    }
+  }, []);
+
+  const handleCreateEvent = useCallback(async (data: {
+    title: string; start: string; end: string;
+    calendar?: string; location?: string; description?: string; allDay?: boolean;
+  }) => {
+    try {
+      const result = await api.createCalendarEvent(data);
+      setEvents(result.events);
+      setSyncedAt(result.syncedAt);
+      setShowCreateForm(false);
+    } catch {
+      throw new Error('Failed to create event');
     }
   }, []);
 
@@ -151,6 +167,15 @@ export function CalendarTab() {
           >
             <MessageSquare className="h-3.5 w-3.5" />
             Chat
+          </button>
+
+          {/* Add event */}
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs text-slate-400 hover:bg-slate-800 hover:text-cyan-400"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add
           </button>
 
           {/* Sync */}
@@ -253,6 +278,15 @@ export function CalendarTab() {
       {selectedEvent && (
         <EventDetail event={selectedEvent} onClose={() => setSelectedEvent(null)} />
       )}
+
+      {/* ── Create event modal ──────────────────────────────── */}
+      {showCreateForm && (
+        <CreateEventForm
+          calendarNames={calendarNames}
+          onClose={() => setShowCreateForm(false)}
+          onCreate={handleCreateEvent}
+        />
+      )}
     </div>
   );
 }
@@ -298,6 +332,187 @@ function EventDetail({ event, onClose }: { event: CalendarEvent; onClose: () => 
             <p className="mt-3 whitespace-pre-wrap text-slate-400">{event.description}</p>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function CreateEventForm({
+  calendarNames,
+  onClose,
+  onCreate,
+}: {
+  calendarNames: string[];
+  onClose: () => void;
+  onCreate: (data: {
+    title: string; start: string; end: string;
+    calendar?: string; location?: string; description?: string; allDay?: boolean;
+  }) => Promise<void>;
+}) {
+  const [title, setTitle] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('10:00');
+  const [calendar, setCalendar] = useState(calendarNames[0] || '');
+  const [location, setLocation] = useState('');
+  const [description, setDescription] = useState('');
+  const [allDay, setAllDay] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title) return;
+
+    setSaving(true);
+    setError('');
+    try {
+      const start = allDay ? `${date}T00:00:00` : `${date}T${startTime}:00`;
+      const end = allDay ? `${date}T23:59:59` : `${date}T${endTime}:00`;
+      await onCreate({
+        title,
+        start,
+        end,
+        calendar: calendar || undefined,
+        location: location || undefined,
+        description: description || undefined,
+        allDay,
+      });
+    } catch {
+      setError('Failed to create event. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div
+        className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+          <h3 className="text-sm font-semibold text-slate-100">New Event</h3>
+          <button onClick={onClose} className="rounded p-1 text-slate-500 hover:text-slate-300">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4 p-5">
+          <div>
+            <label className="mb-1 block text-[11px] text-slate-500">Title</label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-600"
+              placeholder="Event title"
+              autoFocus
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-[11px] text-slate-500">Date</label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-600"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] text-slate-500">Calendar</label>
+              <select
+                value={calendar}
+                onChange={(e) => setCalendar(e.target.value)}
+                className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-600"
+              >
+                {calendarNames.map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+                <option value="">Default</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-xs text-slate-400">
+              <input
+                type="checkbox"
+                checked={allDay}
+                onChange={(e) => setAllDay(e.target.checked)}
+                className="rounded border-slate-600"
+              />
+              All day
+            </label>
+          </div>
+
+          {!allDay && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-[11px] text-slate-500">Start Time</label>
+                <input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-600"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] text-slate-500">End Time</label>
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-600"
+                />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="mb-1 block text-[11px] text-slate-500">Location</label>
+            <input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-600"
+              placeholder="Optional"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-[11px] text-slate-500">Description</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              className="w-full resize-none rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-600"
+              placeholder="Optional"
+            />
+          </div>
+
+          {error && (
+            <p className="text-xs text-red-400">{error}</p>
+          )}
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md px-4 py-2 text-xs text-slate-400 hover:text-slate-200"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving || !title}
+              className="rounded-md bg-cyan-600 px-4 py-2 text-xs text-white hover:bg-cyan-500 disabled:opacity-50"
+            >
+              {saving ? 'Creating...' : 'Create Event'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
