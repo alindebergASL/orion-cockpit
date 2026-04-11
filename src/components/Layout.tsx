@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  Home,
   MessageSquare,
   CalendarDays,
   ListChecks,
@@ -15,6 +16,7 @@ import { api } from '../lib/api';
 import { UserManagement } from './admin/UserManagement';
 
 const tabs: { id: TabId; label: string; icon: React.FC<{ className?: string }> }[] = [
+  { id: 'home', label: 'Home', icon: Home },
   { id: 'chat', label: 'Chat', icon: MessageSquare },
   { id: 'calendar', label: 'Calendar', icon: CalendarDays },
   { id: 'tasks', label: 'Tasks', icon: ListChecks },

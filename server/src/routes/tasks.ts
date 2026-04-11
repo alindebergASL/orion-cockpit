@@ -47,3 +47,24 @@ tasksRouter.post('/sync', async (req, res) => {
     res.status(502).json({ error: message });
   }
 });
+
+tasksRouter.put('/:id/status', (req, res) => {
+  const userId = req.user!.id;
+  const taskId = parseInt(req.params.id, 10);
+  const { status } = req.body as { status: string };
+
+  if (!['open', 'in_progress', 'completed'].includes(status)) {
+    res.status(400).json({ error: 'Invalid status' });
+    return;
+  }
+
+  const result = getDb()
+    .prepare('UPDATE tasks SET status = ? WHERE id = ? AND (user_id = ? OR user_id IS NULL)')
+    .run(status, taskId, userId);
+
+  if (result.changes === 0) {
+    res.status(404).json({ error: 'Task not found' });
+    return;
+  }
+  res.json({ ok: true });
+});

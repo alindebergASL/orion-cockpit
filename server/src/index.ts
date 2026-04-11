@@ -3,7 +3,8 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { config } from './config.js';
-import { initDb } from './db.js';
+import { initDb, getDb } from './db.js';
+import { syncCalendar, syncTasks } from './services/sync.js';
 import { authRouter } from './routes/auth.js';
 import { usersRouter } from './routes/users.js';
 import { chatRouter } from './routes/chat.js';
@@ -43,6 +44,32 @@ app.get('*', (_req, res) => {
 // Initialize DB and start
 initDb();
 
+// Auto-sync calendar and tasks for all users every 15 minutes
+const SYNC_INTERVAL = 15 * 60 * 1000;
+
+function autoSync() {
+  try {
+    const users = getDb()
+      .prepare('SELECT id, display_name FROM users')
+      .all() as { id: number; display_name: string }[];
+
+    for (const user of users) {
+      syncCalendar(user.id).catch((err) =>
+        console.error(`Auto-sync calendar failed for user ${user.id}:`, err.message),
+      );
+      syncTasks(user.id).catch((err) =>
+        console.error(`Auto-sync tasks failed for user ${user.id}:`, err.message),
+      );
+    }
+    console.log(`Auto-sync triggered for ${users.length} user(s)`);
+  } catch (err) {
+    console.error('Auto-sync error:', err);
+  }
+}
+
 app.listen(config.port, () => {
   console.log(`Orion Cockpit server listening on port ${config.port}`);
+  // Initial sync after 30s, then every 15 minutes
+  setTimeout(autoSync, 30_000);
+  setInterval(autoSync, SYNC_INTERVAL);
 });

@@ -79,6 +79,22 @@ export function TasksTab() {
     fetchTasks();
   }, [fetchTasks]);
 
+  const handleToggleStatus = useCallback(async (taskId: number | string, currentStatus: string) => {
+    const nextStatus = currentStatus === 'completed' ? 'open' : 'completed';
+    // Optimistic update
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status: nextStatus as Task['status'] } : t)),
+    );
+    try {
+      await api.updateTaskStatus(Number(taskId), nextStatus);
+    } catch {
+      // Revert on failure
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, status: currentStatus as Task['status'] } : t)),
+      );
+    }
+  }, []);
+
   const filtered = filter === 'all' ? tasks : tasks.filter((t) => t.status === filter);
 
   return (
@@ -144,7 +160,7 @@ export function TasksTab() {
 
         <div className="flex flex-col">
           {filtered.map((task) => (
-            <TaskRow key={task.id} task={task} />
+            <TaskRow key={task.id} task={task} onToggle={handleToggleStatus} />
           ))}
         </div>
       </div>
@@ -152,7 +168,7 @@ export function TasksTab() {
   );
 }
 
-function TaskRow({ task }: { task: Task }) {
+function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number | string, status: string) => void }) {
   const StatusIcon = statusIcons[task.status];
   const color = statusColors[task.status];
   const borderColor = priorityColors[task.priority ?? 'low'] ?? 'border-l-slate-700';
@@ -161,9 +177,15 @@ function TaskRow({ task }: { task: Task }) {
     <div
       className={`flex items-start gap-3 border-b border-l-4 border-b-slate-800/50 px-4 py-3 ${borderColor}`}
     >
-      <StatusIcon className={`mt-0.5 h-4 w-4 shrink-0 ${color}`} />
+      <button
+        onClick={() => onToggle(task.id, task.status)}
+        className={`mt-0.5 shrink-0 transition-colors hover:text-cyan-400 ${color}`}
+        title={task.status === 'completed' ? 'Mark open' : 'Mark complete'}
+      >
+        <StatusIcon className="h-4 w-4" />
+      </button>
       <div className="flex-1">
-        <p className="text-sm text-slate-200">{task.title}</p>
+        <p className={`text-sm ${task.status === 'completed' ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{task.title}</p>
         {task.description && (
           <p className="mt-0.5 text-xs text-slate-500">{task.description}</p>
         )}

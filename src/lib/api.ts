@@ -129,6 +129,13 @@ class ApiClient {
     return this.request('/api/tasks/sync', { method: 'POST' });
   }
 
+  async updateTaskStatus(id: number, status: string): Promise<void> {
+    await this.request(`/api/tasks/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  }
+
   // ── Notes ────────────────────────────────────────────────
 
   async getNotes(): Promise<Note[]> {

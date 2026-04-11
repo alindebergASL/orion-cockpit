@@ -1,10 +1,22 @@
 import { useEffect, useRef } from 'react';
 import { Bot, User } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { ChatMessage } from '../../types';
 
 interface Props {
   messages: ChatMessage[];
   streaming: boolean;
+}
+
+function ThinkingIndicator() {
+  return (
+    <div className="flex items-center gap-1.5 py-1">
+      <div className="h-2 w-2 animate-bounce rounded-full bg-cyan-400 [animation-delay:0ms]" />
+      <div className="h-2 w-2 animate-bounce rounded-full bg-cyan-400 [animation-delay:150ms]" />
+      <div className="h-2 w-2 animate-bounce rounded-full bg-cyan-400 [animation-delay:300ms]" />
+    </div>
+  );
 }
 
 export function MessageList({ messages, streaming }: Props) {
@@ -27,37 +39,53 @@ export function MessageList({ messages, streaming }: Props) {
   return (
     <div className="flex-1 overflow-y-auto px-4 py-4">
       <div className="mx-auto flex max-w-3xl flex-col gap-4">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}
-          >
-            {msg.role === 'assistant' && (
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-600/20 text-cyan-400">
-                <Bot className="h-4 w-4" />
-              </div>
-            )}
+        {messages.map((msg) => {
+          const isUser = msg.role === 'user';
+          const isLastAssistant = !isUser && streaming && msg === messages[messages.length - 1];
+          const isEmpty = !msg.content;
 
+          return (
             <div
-              className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
-                msg.role === 'user'
-                  ? 'bg-cyan-700/30 text-cyan-50'
-                  : 'bg-slate-800 text-slate-200'
-              }`}
+              key={msg.id}
+              className={`flex gap-3 ${isUser ? 'justify-end' : ''}`}
             >
-              {msg.content}
-              {msg.role === 'assistant' && streaming && msg === messages[messages.length - 1] && !msg.content && (
-                <span className="inline-block h-4 w-1.5 animate-pulse rounded bg-cyan-400" />
+              {!isUser && (
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-600/20 text-cyan-400">
+                  <Bot className="h-4 w-4" />
+                </div>
+              )}
+
+              <div
+                className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm leading-relaxed ${
+                  isUser
+                    ? 'bg-cyan-700/30 text-cyan-50 whitespace-pre-wrap'
+                    : 'bg-slate-800 text-slate-200'
+                }`}
+              >
+                {isUser ? (
+                  msg.content
+                ) : isEmpty && isLastAssistant ? (
+                  <ThinkingIndicator />
+                ) : (
+                  <div className="prose prose-sm prose-invert max-w-none prose-p:my-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-pre:my-2 prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-700 prose-code:text-cyan-300 prose-code:before:content-none prose-code:after:content-none prose-a:text-cyan-400 prose-strong:text-slate-100 prose-headings:text-slate-100 prose-headings:mt-3 prose-headings:mb-1.5">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {msg.content}
+                    </ReactMarkdown>
+                    {isLastAssistant && (
+                      <span className="inline-block h-4 w-1.5 animate-pulse rounded bg-cyan-400 ml-0.5 align-middle" />
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {isUser && (
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-700 text-slate-300">
+                  <User className="h-4 w-4" />
+                </div>
               )}
             </div>
-
-            {msg.role === 'user' && (
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-700 text-slate-300">
-                <User className="h-4 w-4" />
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
         <div ref={endRef} />
       </div>
     </div>

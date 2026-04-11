@@ -3,12 +3,14 @@ import type { TabId } from './types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginPage } from './components/auth/LoginPage';
 import { Layout } from './components/Layout';
+import { HomeTab } from './components/tabs/HomeTab';
 import { ChatTab } from './components/tabs/ChatTab';
 import { CalendarTab } from './components/tabs/CalendarTab';
 import { TasksTab } from './components/tabs/TasksTab';
 import { NotesTab } from './components/tabs/NotesTab';
 
 const tabComponents: Record<TabId, React.FC> = {
+  home: HomeTab,
   chat: ChatTab,
   calendar: CalendarTab,
   tasks: TasksTab,
@@ -18,7 +20,7 @@ const tabComponents: Record<TabId, React.FC> = {
 const tabEntries = Object.entries(tabComponents) as [TabId, React.FC][];
 
 function Dashboard() {
-  const [activeTab, setActiveTab] = useState<TabId>('chat');
+  const [activeTab, setActiveTab] = useState<TabId>('home');
 
   return (
     <Layout activeTab={activeTab} onTabChange={setActiveTab}>
