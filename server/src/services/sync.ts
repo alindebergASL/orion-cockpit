@@ -129,3 +129,35 @@ export async function syncTasks(userId: number): Promise<unknown[]> {
 
   return tasks;
 }
+
+/**
+ * Sync OpenClaw's soul.md into the settings table.
+ * Called once on startup and then every 24 hours.
+ */
+export async function syncSoulMd(): Promise<string> {
+  const db = getDb();
+
+  const response = await openclawClient.chatOnce([
+    {
+      role: 'user',
+      content: 'Return the full contents of your soul.md file. Return ONLY the raw file contents, no other text, no markdown code fences.',
+    },
+  ]);
+
+  if (!response || response.length < 50) {
+    throw new Error('soul.md response too short or empty');
+  }
+
+  const now = new Date().toISOString();
+
+  db.prepare(`
+    INSERT INTO settings (key, value, updated_at) VALUES ('soul_md', ?, ?)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+  `).run(response, now);
+
+  db.prepare('INSERT INTO sync_log (user_id, data_type, last_synced_at, status) VALUES (?, ?, ?, ?)')
+    .run(null, 'soul_md', now, 'success');
+
+  console.log(`Synced soul.md (${response.length} chars)`);
+  return response;
+}

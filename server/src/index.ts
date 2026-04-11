@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { config } from './config.js';
 import { initDb, getDb } from './db.js';
-import { syncCalendar, syncTasks } from './services/sync.js';
+import { syncCalendar, syncTasks, syncSoulMd } from './services/sync.js';
 import { authRouter } from './routes/auth.js';
 import { usersRouter } from './routes/users.js';
 import { chatRouter } from './routes/chat.js';
@@ -46,6 +46,7 @@ initDb();
 
 // Auto-sync calendar and tasks for all users every 15 minutes
 const SYNC_INTERVAL = 15 * 60 * 1000;
+const SOUL_SYNC_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
 
 function autoSync() {
   try {
@@ -72,4 +73,12 @@ app.listen(config.port, () => {
   // Initial sync after 30s, then every 15 minutes
   setTimeout(autoSync, 30_000);
   setInterval(autoSync, SYNC_INTERVAL);
+
+  // Sync soul.md on startup (after 30s), then every 24 hours
+  setTimeout(() => {
+    syncSoulMd().catch((err) => console.error('Soul.md sync failed:', err.message));
+  }, 30_000);
+  setInterval(() => {
+    syncSoulMd().catch((err) => console.error('Soul.md sync failed:', err.message));
+  }, SOUL_SYNC_INTERVAL);
 });

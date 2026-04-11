@@ -34,8 +34,16 @@ function buildSystemPrompt(user: { id: number; displayName: string; username: st
   const calendarJson = events.length ? JSON.stringify(events, null, 2) : '(no synced calendar data yet — call refresh_calendar to load)';
   const taskJson = tasks.length ? JSON.stringify(tasks, null, 2) : '(no synced task data yet — call refresh_tasks to load)';
 
-  return `You are OpenClaw, a personal AI assistant for the ${user.displayName} household.
-You are currently talking to ${user.displayName} (${user.username}).
+  // Load soul.md if synced
+  const soulRow = db.prepare("SELECT value FROM settings WHERE key = 'soul_md'")
+    .get() as { value: string } | undefined;
+  const soulMd = soulRow?.value ?? '';
+
+  const identity = soulMd
+    ? `${soulMd}\n\n---\n\nYou are currently talking to ${user.displayName} (${user.username}).`
+    : `You are OpenClaw, a personal AI assistant for the ${user.displayName} household.\nYou are currently talking to ${user.displayName} (${user.username}).`;
+
+  return `${identity}
 
 Here is ${user.username}'s calendar data (synced at ${calSyncRow?.last_synced_at ?? 'never'}):
 ${calendarJson}
