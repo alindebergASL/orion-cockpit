@@ -19,6 +19,7 @@ export function SettingsModal({ onClose }: Props) {
   const [enabledCalendars, setEnabledCalendars] = useState<string[]>([]);
   const [taskLists, setTaskLists] = useState<ListInfo[]>([]);
   const [enabledTaskLists, setEnabledTaskLists] = useState<string[]>([]);
+  const [weatherLocation, setWeatherLocation] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -39,6 +40,8 @@ export function SettingsModal({ onClose }: Props) {
 
         const enabledLists = settings.enabled_task_lists as string[] | undefined;
         setEnabledTaskLists(enabledLists && enabledLists.length > 0 ? enabledLists : lists.map((l) => l.name));
+
+        setWeatherLocation((settings.weather_location as string) || '');
       } catch { /* ignore */ }
       finally { setLoading(false); }
     })();
@@ -58,6 +61,7 @@ export function SettingsModal({ onClose }: Props) {
       await Promise.all([
         api.updateSetting('enabled_calendars', enabledCalendars),
         api.updateSetting('enabled_task_lists', enabledTaskLists),
+        weatherLocation ? api.updateSetting('weather_location', weatherLocation) : Promise.resolve(),
       ]);
       showToast('Settings saved', 'success');
       // Trigger re-sync with new preferences
@@ -96,6 +100,21 @@ export function SettingsModal({ onClose }: Props) {
               >
                 {theme === 'dark' ? 'Dark' : 'Light'}
               </button>
+            </div>
+          </section>
+
+          {/* Weather Location */}
+          <section>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Weather</h3>
+            <div className="rounded-lg border border-slate-800 px-4 py-3">
+              <label className="mb-1.5 block text-[11px] text-slate-500">Location</label>
+              <input
+                value={weatherLocation}
+                onChange={(e) => setWeatherLocation(e.target.value)}
+                placeholder="e.g. Redwood City, CA"
+                className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-base md:text-sm text-slate-200 outline-none focus:border-cyan-600"
+              />
+              <p className="mt-1.5 text-[10px] text-slate-600">Leave blank for default (Redwood City, CA)</p>
             </div>
           </section>
 

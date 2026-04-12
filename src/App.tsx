@@ -40,6 +40,16 @@ function Dashboard() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
+  // Listen for navigation events from Home tab quick actions
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const tab = (e as CustomEvent).detail?.tab as TabId;
+      if (tab && tabIds.includes(tab)) setActiveTab(tab);
+    };
+    window.addEventListener('orion-navigate', handler);
+    return () => window.removeEventListener('orion-navigate', handler);
+  }, []);
+
   return (
     <Layout activeTab={activeTab} onTabChange={setActiveTab}>
       {tabEntries.map(([id, Component]) => (

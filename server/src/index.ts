@@ -37,18 +37,31 @@ app.get('/api/health', (_req, res) => {
 });
 
 // Weather (cached for 30 minutes)
-let weatherCache: { data: unknown; fetchedAt: number } | null = null;
+let weatherCache: { data: unknown; fetchedAt: number; location: string } | null = null;
 const WEATHER_TTL = 30 * 60 * 1000;
-const WEATHER_LOCATION = 'Redwood+City,CA';
+const DEFAULT_WEATHER_LOCATION = 'Redwood+City,CA';
 
-app.get('/api/weather', async (_req, res) => {
+app.get('/api/weather', async (req, res) => {
   try {
-    if (weatherCache && Date.now() - weatherCache.fetchedAt < WEATHER_TTL) {
+    // Per-user location from settings (requires auth header, optional)
+    let location = DEFAULT_WEATHER_LOCATION;
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const jwt = await import('jsonwebtoken');
+        const payload = jwt.default.verify(authHeader.slice(7), config.jwtSecret) as { userId: number };
+        const pref = getDb().prepare("SELECT value FROM user_settings WHERE user_id = ? AND key = 'weather_location'")
+          .get(payload.userId) as { value: string } | undefined;
+        if (pref?.value) location = pref.value.replace(/ /g, '+');
+      } catch { /* use default */ }
+    }
+
+    if (weatherCache && Date.now() - weatherCache.fetchedAt < WEATHER_TTL && weatherCache.location === location) {
       res.json(weatherCache.data);
       return;
     }
 
-    const wttr = await fetch(`https://wttr.in/${WEATHER_LOCATION}?format=j1`);
+    const wttr = await fetch(`https://wttr.in/${location}?format=j1`);
     if (!wttr.ok) throw new Error('Weather fetch failed');
     const raw = await wttr.json() as Record<string, unknown>;
 
@@ -78,10 +91,10 @@ app.get('/api/weather', async (_req, res) => {
           ? (((tomorrowForecast as Record<string, unknown>)?.hourly as Record<string, unknown>[])?.[4]?.weatherDesc as Record<string, unknown>[])?.[0]?.value
           : undefined,
       },
-      location: WEATHER_LOCATION,
+      location: location.replace(/\+/g, ' '),
     };
 
-    weatherCache = { data, fetchedAt: Date.now() };
+    weatherCache = { data, fetchedAt: Date.now(), location };
     res.json(data);
   } catch {
     res.status(502).json({ error: 'Weather unavailable' });
