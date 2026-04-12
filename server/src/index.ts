@@ -39,7 +39,7 @@ app.get('/api/health', (_req, res) => {
 // Weather (cached for 30 minutes)
 let weatherCache: { data: unknown; fetchedAt: number } | null = null;
 const WEATHER_TTL = 30 * 60 * 1000;
-const WEATHER_LOCATION = 'Portland,OR';
+const WEATHER_LOCATION = 'Redwood+City,CA';
 
 app.get('/api/weather', async (_req, res) => {
   try {

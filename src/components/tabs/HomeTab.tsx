@@ -125,24 +125,33 @@ export function HomeTab() {
     );
   }
 
-  // Build briefing text
+  // Build briefing text — warm, conversational OpenClaw tone
   const briefingParts: string[] = [];
   if (weather) {
-    briefingParts.push(`It's currently ${weather.current.tempF}\u00B0F and ${weather.current.description.toLowerCase()} in ${weather.location.replace(',', ', ')}.`);
+    const temp = weather.current.tempF;
+    const desc = weather.current.description.toLowerCase();
+    briefingParts.push(`It's ${temp}\u00B0 out right now \u2014 ${desc} skies over Redwood City.`);
   }
   if (todayEvents.length === 0) {
-    briefingParts.push('Your calendar is clear today.');
-  } else {
-    briefingParts.push(`You have ${todayEvents.length} event${todayEvents.length > 1 ? 's' : ''} today.`);
+    briefingParts.push('Your calendar is wide open today \u2014 enjoy the breathing room!');
+  } else if (todayEvents.length === 1) {
     const next = todayEvents[0];
     if (next && !next.allDay) {
-      briefingParts.push(`Next up: ${next.title} at ${formatEventTime(next)}.`);
+      briefingParts.push(`Just one thing on the calendar today: ${next.title} at ${formatEventTime(next)}.`);
+    } else {
+      briefingParts.push('You have one event on the books today.');
+    }
+  } else {
+    briefingParts.push(`You've got ${todayEvents.length} events lined up today.`);
+    const next = todayEvents[0];
+    if (next && !next.allDay) {
+      briefingParts.push(`First up is ${next.title} at ${formatEventTime(next)}.`);
     }
   }
   if (activeTasks.length > 0) {
-    briefingParts.push(`${activeTasks.length} open task${activeTasks.length > 1 ? 's' : ''} to tackle.`);
+    briefingParts.push(`${activeTasks.length} task${activeTasks.length > 1 ? 's' : ''} on your plate when you're ready.`);
   } else {
-    briefingParts.push('All tasks complete \u2014 nice work!');
+    briefingParts.push('All tasks knocked out \u2014 well done!');
   }
 
   return (
