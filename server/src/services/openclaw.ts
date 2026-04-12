@@ -35,17 +35,25 @@ export class OpenClawClient {
     opts: OpenClawStreamOptions,
     onText: (chunk: string) => void,
   ): Promise<void> {
-    // Build input items for Responses API format
-    const input = opts.messages.map((m) => ({
-      role: m.role === 'system' ? 'developer' : m.role,
-      content: m.content,
-    }));
+    // Extract system messages into instructions field
+    const systemMessages = opts.messages.filter((m) => m.role === 'system');
+    const instructions = systemMessages.map((m) => m.content).join('\n\n') || undefined;
+
+    // Build typed input items (non-system only)
+    const input = opts.messages
+      .filter((m) => m.role !== 'system')
+      .map((m) => ({
+        type: 'message' as const,
+        role: m.role,
+        content: m.content,
+      }));
 
     const res = await fetch(`${this.baseUrl}/v1/responses`, {
       method: 'POST',
       headers: this.headers(),
       body: JSON.stringify({
         model: 'openclaw/default',
+        instructions,
         input,
         stream: true,
         ...(opts.sessionKey && { session_key: opts.sessionKey }),
