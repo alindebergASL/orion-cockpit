@@ -154,7 +154,7 @@ export function HomeTab() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-700 border-t-cyan-400" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-th-border-strong border-t-cyan-400" />
       </div>
     );
   }
@@ -390,7 +390,7 @@ export function HomeTab() {
                   >
                     <button
                       onClick={() => handleToggleTask(task.id, task.status)}
-                      className="shrink-0 text-slate-500 hover:text-cyan-400 transition-colors"
+                      className="shrink-0 text-th-text-secondary hover:text-cyan-400 transition-colors"
                       title="Mark complete"
                     >
                       {task.status === 'completed' ? (
@@ -468,7 +468,7 @@ function EventDetail({ event, onClose }: { event: CalendarEvent; onClose: () => 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
       <div
-        className="w-11/12 max-w-md rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl"
+        className="w-11/12 max-w-md rounded-xl border border-th-border-strong bg-th-surface p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-start justify-between">
@@ -476,14 +476,14 @@ function EventDetail({ event, onClose }: { event: CalendarEvent; onClose: () => 
             {event.calendar && (
               <div className="mb-1 text-xs text-cyan-400">{event.calendar}</div>
             )}
-            <h3 className="text-lg font-semibold text-slate-100">{event.title}</h3>
+            <h3 className="text-lg font-semibold text-th-text">{event.title}</h3>
           </div>
-          <button onClick={onClose} className="rounded p-1 text-slate-500 hover:text-slate-300">
+          <button onClick={onClose} className="rounded p-1 text-th-text-secondary hover:text-th-text">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="space-y-2 text-sm text-slate-400">
+        <div className="space-y-2 text-sm text-th-text-secondary">
           <div className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
             {event.allDay
@@ -493,13 +493,13 @@ function EventDetail({ event, onClose }: { event: CalendarEvent; onClose: () => 
 
           {event.location && (
             <div className="flex items-center gap-2">
-              <span className="text-slate-600">Location:</span>
+              <span className="text-th-text-muted">Location:</span>
               {event.location}
             </div>
           )}
 
           {event.description && (
-            <p className="mt-3 whitespace-pre-wrap text-slate-400">{event.description}</p>
+            <p className="mt-3 whitespace-pre-wrap text-th-text-secondary">{event.description}</p>
           )}
         </div>
       </div>

@@ -34,7 +34,7 @@ export function MessageInput({ onSend, onStop, streaming, placeholder }: Props) 
   };
 
   return (
-    <div className="border-t border-slate-800 bg-slate-900/50 px-4 py-3">
+    <div className="border-t border-th-border bg-th-surface px-4 py-3">
       <div className="mx-auto flex max-w-3xl items-end gap-2">
         <textarea
           ref={textareaRef}
@@ -44,7 +44,7 @@ export function MessageInput({ onSend, onStop, streaming, placeholder }: Props) 
           onKeyDown={handleKeyDown}
           placeholder={placeholder ?? 'Message OpenClaw...'}
           disabled={streaming}
-          className="flex-1 resize-none rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-base md:text-sm text-slate-100 placeholder-slate-500 outline-none transition-colors focus:border-cyan-600 disabled:opacity-50"
+          className="flex-1 resize-none rounded-xl border border-th-border-strong bg-th-input px-4 py-2.5 text-base md:text-sm text-th-text placeholder-th-text-muted outline-none transition-colors focus:border-cyan-600 disabled:opacity-50"
         />
         <button
           onClick={handleSubmit}

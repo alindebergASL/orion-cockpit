@@ -30,16 +30,22 @@ export class OpenClawClient {
     return result;
   }
 
-  /** Stream a chat completion from OpenClaw. */
+  /** Stream a chat via OpenClaw's Responses API. */
   async streamChat(
     opts: OpenClawStreamOptions,
     onText: (chunk: string) => void,
   ): Promise<void> {
-    const res = await fetch(`${this.baseUrl}/v1/chat/completions`, {
+    // Build input items for Responses API format
+    const input = opts.messages.map((m) => ({
+      role: m.role === 'system' ? 'developer' : m.role,
+      content: m.content,
+    }));
+
+    const res = await fetch(`${this.baseUrl}/v1/responses`, {
       method: 'POST',
       headers: this.headers(),
       body: JSON.stringify({
-        messages: opts.messages,
+        input,
         stream: true,
         ...(opts.sessionKey && { session_key: opts.sessionKey }),
       }),
@@ -68,6 +74,11 @@ export class OpenClawClient {
 
         try {
           const parsed = JSON.parse(data);
+          // Responses API: output_text.delta events
+          if (parsed.type === 'response.output_text.delta' && parsed.delta) {
+            onText(parsed.delta);
+          }
+          // Also handle chat completions format as fallback
           const delta = parsed.choices?.[0]?.delta;
           if (delta?.content) onText(delta.content);
         } catch {

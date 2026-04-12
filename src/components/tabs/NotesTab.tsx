@@ -72,7 +72,7 @@ export function NotesTab() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-700 border-t-cyan-400" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-th-border-strong border-t-cyan-400" />
       </div>
     );
   }
@@ -80,12 +80,12 @@ export function NotesTab() {
   return (
     <div className="flex h-full flex-col md:flex-row">
       {/* Notes sidebar */}
-      <div className={`${activeId !== null ? 'hidden md:flex' : 'flex'} w-full md:w-64 flex-col border-b md:border-b-0 md:border-r border-slate-800 bg-slate-900/50`}>
-        <div className="flex items-center justify-between border-b border-slate-800 px-3 py-3">
-          <h2 className="text-sm font-semibold text-slate-100">Notes</h2>
+      <div className={`${activeId !== null ? 'hidden md:flex' : 'flex'} w-full md:w-64 flex-col border-b md:border-b-0 md:border-r border-th-border bg-th-surface`}>
+        <div className="flex items-center justify-between border-b border-th-border px-3 py-3">
+          <h2 className="text-sm font-semibold text-th-text">Notes</h2>
           <button
             onClick={createNote}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-cyan-400"
+            className="rounded-lg p-1.5 text-th-text-secondary hover:bg-th-elevated hover:text-cyan-400"
           >
             <Plus className="h-4 w-4" />
           </button>
@@ -93,7 +93,7 @@ export function NotesTab() {
 
         <div className="flex-1 overflow-y-auto">
           {notes.length === 0 && (
-            <div className="flex flex-col items-center gap-2 py-12 text-slate-600">
+            <div className="flex flex-col items-center gap-2 py-12 text-th-text-muted">
               <FileText className="h-8 w-8" />
               <p className="text-xs">No notes yet</p>
             </div>
@@ -105,13 +105,13 @@ export function NotesTab() {
               onClick={() => setActiveId(note.id)}
               className={`flex w-full items-center justify-between px-3 py-2.5 text-left transition-colors ${
                 activeId === note.id
-                  ? 'bg-slate-800 text-slate-100'
-                  : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-300'
+                  ? 'bg-th-input text-th-text'
+                  : 'text-th-text-secondary hover:bg-th-elevated/50 hover:text-th-text-secondary'
               }`}
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm">{note.title || 'Untitled'}</p>
-                <p className="truncate text-[11px] text-slate-600">
+                <p className="truncate text-[11px] text-th-text-muted">
                   {new Date(note.updatedAt).toLocaleDateString()}
                 </p>
               </div>
@@ -120,7 +120,7 @@ export function NotesTab() {
                   e.stopPropagation();
                   deleteNote(note.id);
                 }}
-                className="ml-2 shrink-0 rounded p-1 text-slate-600 hover:text-red-400"
+                className="ml-2 shrink-0 rounded p-1 text-th-text-muted hover:text-red-400"
               >
                 <Trash2 className="h-3 w-3" />
               </button>
@@ -133,7 +133,7 @@ export function NotesTab() {
       <div className={`${activeId === null ? 'hidden md:flex' : 'flex'} flex-1 flex-col`}>
         {activeNote ? (
           <>
-            <div className="flex items-center border-b border-slate-800 md:hidden">
+            <div className="flex items-center border-b border-th-border md:hidden">
               <button
                 onClick={() => setActiveId(null)}
                 className="px-3 py-3 text-xs text-cyan-400"
@@ -145,17 +145,17 @@ export function NotesTab() {
               value={activeNote.title}
               onChange={(e) => updateNote('title', e.target.value)}
               placeholder="Note title"
-              className="border-b border-slate-800 bg-transparent px-6 py-4 text-lg font-semibold text-slate-100 outline-none placeholder-slate-600"
+              className="border-b border-th-border bg-transparent px-6 py-4 text-lg font-semibold text-th-text outline-none placeholder-th-text-muted"
             />
             <textarea
               value={activeNote.content}
               onChange={(e) => updateNote('content', e.target.value)}
               placeholder="Start writing..."
-              className="flex-1 resize-none bg-transparent px-6 py-4 text-sm leading-relaxed text-slate-300 outline-none placeholder-slate-700"
+              className="flex-1 resize-none bg-transparent px-6 py-4 text-sm leading-relaxed text-th-text-secondary outline-none placeholder-th-text-muted"
             />
           </>
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-slate-600">
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-th-text-muted">
             <FileText className="h-12 w-12" />
             <p>Select or create a note</p>
           </div>

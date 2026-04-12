@@ -19,7 +19,7 @@ const statusIcons: Record<Task['status'], React.FC<{ className?: string }>> = {
 };
 
 const statusColors: Record<Task['status'], string> = {
-  open: 'text-slate-400',
+  open: 'text-th-text-secondary',
   in_progress: 'text-amber-400',
   completed: 'text-emerald-400',
 };
@@ -122,16 +122,16 @@ export function TasksTab() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+      <div className="flex items-center justify-between border-b border-th-border px-4 py-3">
         <div className="flex items-center gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-slate-100">Tasks</h2>
-            <p className="text-xs text-slate-500">
+            <h2 className="text-sm font-semibold text-th-text">Tasks</h2>
+            <p className="text-xs text-th-text-secondary">
               Tasks synced from OpenClaw
             </p>
           </div>
           {syncedAt && (
-            <span className="flex items-center gap-1 text-[10px] text-slate-600">
+            <span className="flex items-center gap-1 text-[10px] text-th-text-muted">
               <Clock className="h-3 w-3" />
               Synced {timeAgo(syncedAt)}
             </span>
@@ -140,7 +140,7 @@ export function TasksTab() {
         <button
           onClick={handleSync}
           disabled={syncing}
-          className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-800 hover:text-slate-200 disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-th-text-secondary hover:bg-th-elevated hover:text-th-text disabled:opacity-50"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} />
           Sync
@@ -148,7 +148,7 @@ export function TasksTab() {
       </div>
 
       {/* Filter bar */}
-      <div className="flex gap-1 border-b border-slate-800/50 px-4 py-2">
+      <div className="flex gap-1 border-b border-th-border px-4 py-2">
         {(['open', 'in_progress', 'completed', 'all'] as const).map((f) => (
           <button
             key={f}
@@ -156,7 +156,7 @@ export function TasksTab() {
             className={`rounded-md px-2.5 py-1 text-xs capitalize transition-colors ${
               filter === f
                 ? 'bg-cyan-600/20 text-cyan-400'
-                : 'text-slate-500 hover:text-slate-300'
+                : 'text-th-text-secondary hover:text-th-text-secondary'
             }`}
           >
             {f.replace('_', ' ')}
@@ -165,14 +165,14 @@ export function TasksTab() {
       </div>
 
       {/* Quick add */}
-      <div className="flex items-center gap-2 border-b border-slate-800/50 px-4 py-2">
-        <Plus className="h-3.5 w-3.5 text-slate-600" />
+      <div className="flex items-center gap-2 border-b border-th-border px-4 py-2">
+        <Plus className="h-3.5 w-3.5 text-th-text-muted" />
         <input
           value={quickAdd}
           onChange={(e) => setQuickAdd(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') handleQuickAdd(); }}
           placeholder="Add a task..."
-          className="flex-1 bg-transparent text-base md:text-sm text-slate-200 outline-none placeholder-slate-600"
+          className="flex-1 bg-transparent text-base md:text-sm text-th-text outline-none placeholder-th-text-muted"
         />
         {quickAdd && (
           <button
@@ -189,12 +189,12 @@ export function TasksTab() {
         {error && (
           <div className="flex flex-col items-center gap-2 px-4 py-12 text-center">
             <AlertTriangle className="h-8 w-8 text-amber-500" />
-            <p className="text-sm text-slate-400">{error}</p>
+            <p className="text-sm text-th-text-secondary">{error}</p>
           </div>
         )}
 
         {!error && filtered.length === 0 && !loading && (
-          <div className="flex flex-col items-center gap-2 px-4 py-12 text-slate-500">
+          <div className="flex flex-col items-center gap-2 px-4 py-12 text-th-text-secondary">
             <ListChecks className="h-10 w-10" />
             <p className="text-sm">No tasks found</p>
           </div>
@@ -217,7 +217,7 @@ function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number | strin
 
   return (
     <div
-      className={`flex items-start gap-3 border-b border-l-4 border-b-slate-800/50 px-4 py-3 ${borderColor}`}
+      className={`flex items-start gap-3 border-b border-l-4 border-b-th-border px-4 py-3 ${borderColor}`}
     >
       <button
         onClick={() => onToggle(task.id, task.status)}
@@ -227,11 +227,11 @@ function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number | strin
         <StatusIcon className="h-4 w-4" />
       </button>
       <div className="flex-1">
-        <p className={`text-sm ${task.status === 'completed' ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{task.title}</p>
+        <p className={`text-sm ${task.status === 'completed' ? 'text-th-text-secondary line-through' : 'text-th-text'}`}>{task.title}</p>
         {task.description && (
-          <p className="mt-0.5 text-xs text-slate-500">{task.description}</p>
+          <p className="mt-0.5 text-xs text-th-text-secondary">{task.description}</p>
         )}
-        <div className="mt-1.5 flex items-center gap-3 text-[11px] text-slate-600">
+        <div className="mt-1.5 flex items-center gap-3 text-[11px] text-th-text-muted">
           <span className="capitalize">{task.status.replace('_', ' ')}</span>
           {task.priority && <span className="capitalize">{task.priority} priority</span>}
           {task.dueDate && <span>Due {new Date(task.dueDate).toLocaleDateString()}</span>}

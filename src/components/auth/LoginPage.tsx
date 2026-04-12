@@ -38,7 +38,7 @@ export function LoginPage() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="username" className="mb-1.5 block text-xs font-medium text-slate-400">
+            <label htmlFor="username" className="mb-1.5 block text-xs font-medium text-th-text-secondary">
               Username
             </label>
             <input
@@ -48,13 +48,13 @@ export function LoginPage() {
               onChange={(e) => setUsername(e.target.value)}
               autoComplete="username"
               autoFocus
-              className="w-full rounded-lg border border-th-border-strong bg-th-surface px-3 py-2.5 text-base md:text-sm text-slate-100 outline-none placeholder-slate-600 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600"
+              className="w-full rounded-lg border border-th-border-strong bg-th-surface px-3 py-2.5 text-base md:text-sm text-th-text outline-none placeholder-th-text-muted focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600"
               placeholder="Enter username"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="mb-1.5 block text-xs font-medium text-slate-400">
+            <label htmlFor="password" className="mb-1.5 block text-xs font-medium text-th-text-secondary">
               Password
             </label>
             <input
@@ -63,7 +63,7 @@ export function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
-              className="w-full rounded-lg border border-th-border-strong bg-th-surface px-3 py-2.5 text-base md:text-sm text-slate-100 outline-none placeholder-slate-600 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600"
+              className="w-full rounded-lg border border-th-border-strong bg-th-surface px-3 py-2.5 text-base md:text-sm text-th-text outline-none placeholder-th-text-muted focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600"
               placeholder="Enter password"
             />
           </div>

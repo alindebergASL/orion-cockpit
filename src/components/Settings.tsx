@@ -77,13 +77,13 @@ export function SettingsModal({ onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
       <div
-        className="w-11/12 max-w-md rounded-xl border border-slate-700 bg-slate-900 shadow-2xl"
+        className="w-11/12 max-w-md rounded-xl border border-th-border-strong bg-th-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
-          <h2 className="text-sm font-semibold text-slate-100">Settings</h2>
-          <button onClick={onClose} className="rounded p-1 text-slate-500 hover:text-slate-300">
+        <div className="flex items-center justify-between border-b border-th-border px-5 py-4">
+          <h2 className="text-sm font-semibold text-th-text">Settings</h2>
+          <button onClick={onClose} className="rounded p-1 text-th-text-secondary hover:text-th-text-secondary">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -91,12 +91,12 @@ export function SettingsModal({ onClose }: Props) {
         <div className="max-h-[32rem] overflow-y-auto p-5 space-y-6">
           {/* Theme */}
           <section>
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Appearance</h3>
-            <div className="flex items-center justify-between rounded-lg border border-slate-800 px-4 py-3">
-              <span className="text-sm text-slate-300">Theme</span>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-th-text-secondary">Appearance</h3>
+            <div className="flex items-center justify-between rounded-lg border border-th-border px-4 py-3">
+              <span className="text-sm text-th-text-secondary">Theme</span>
               <button
                 onClick={toggleTheme}
-                className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+                className="rounded-lg border border-th-border-strong px-3 py-1.5 text-xs text-th-text-secondary hover:bg-th-elevated"
               >
                 {theme === 'dark' ? 'Dark' : 'Light'}
               </button>
@@ -105,35 +105,35 @@ export function SettingsModal({ onClose }: Props) {
 
           {/* Weather Location */}
           <section>
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Weather</h3>
-            <div className="rounded-lg border border-slate-800 px-4 py-3">
-              <label className="mb-1.5 block text-[11px] text-slate-500">Location</label>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-th-text-secondary">Weather</h3>
+            <div className="rounded-lg border border-th-border px-4 py-3">
+              <label className="mb-1.5 block text-[11px] text-th-text-secondary">Location</label>
               <input
                 value={weatherLocation}
                 onChange={(e) => setWeatherLocation(e.target.value)}
                 placeholder="e.g. Redwood City, CA"
-                className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-base md:text-sm text-slate-200 outline-none focus:border-cyan-600"
+                className="w-full rounded-md border border-th-border-strong bg-th-input px-3 py-2 text-base md:text-sm text-th-text outline-none focus:border-cyan-600"
               />
-              <p className="mt-1.5 text-[10px] text-slate-600">Leave blank for default (Redwood City, CA)</p>
+              <p className="mt-1.5 text-[10px] text-th-text-muted">Leave blank for default (Redwood City, CA)</p>
             </div>
           </section>
 
           {/* Calendars */}
           <section>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Calendars</h3>
-              {loading && <RefreshCw className="h-3 w-3 animate-spin text-slate-600" />}
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-th-text-secondary">Calendars</h3>
+              {loading && <RefreshCw className="h-3 w-3 animate-spin text-th-text-muted" />}
             </div>
 
             {!loading && calendars.length === 0 && (
-              <p className="text-xs text-slate-600">No calendars found.</p>
+              <p className="text-xs text-th-text-muted">No calendars found.</p>
             )}
 
             <div className="space-y-1.5">
               {calendars.map((cal) => (
                 <label
                   key={cal.id}
-                  className="flex items-center gap-3 rounded-lg border border-slate-800 px-4 py-2.5 cursor-pointer hover:bg-slate-800/50"
+                  className="flex items-center gap-3 rounded-lg border border-th-border px-4 py-2.5 cursor-pointer hover:bg-th-elevated/50"
                 >
                   <input
                     type="checkbox"
@@ -141,11 +141,11 @@ export function SettingsModal({ onClose }: Props) {
                     onChange={() => toggleCalendar(cal.id)}
                     className="rounded border-slate-600 text-cyan-600 focus:ring-cyan-600"
                   />
-                  <Calendar className="h-3.5 w-3.5 text-slate-500" />
+                  <Calendar className="h-3.5 w-3.5 text-th-text-secondary" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-slate-200 truncate">{cal.name}</p>
+                    <p className="text-sm text-th-text truncate">{cal.name}</p>
                     {cal.id !== cal.name && (
-                      <p className="text-[10px] text-slate-600 truncate">{cal.id}</p>
+                      <p className="text-[10px] text-th-text-muted truncate">{cal.id}</p>
                     )}
                   </div>
                 </label>
@@ -153,7 +153,7 @@ export function SettingsModal({ onClose }: Props) {
             </div>
 
             {calendars.length > 0 && (
-              <p className="mt-2 text-[11px] text-slate-600">
+              <p className="mt-2 text-[11px] text-th-text-muted">
                 Only selected calendars will sync and appear in the calendar view.
               </p>
             )}
@@ -162,19 +162,19 @@ export function SettingsModal({ onClose }: Props) {
           {/* Task Lists */}
           <section>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Task Lists</h3>
-              {loading && <RefreshCw className="h-3 w-3 animate-spin text-slate-600" />}
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-th-text-secondary">Task Lists</h3>
+              {loading && <RefreshCw className="h-3 w-3 animate-spin text-th-text-muted" />}
             </div>
 
             {!loading && taskLists.length === 0 && (
-              <p className="text-xs text-slate-600">No task lists found.</p>
+              <p className="text-xs text-th-text-muted">No task lists found.</p>
             )}
 
             <div className="space-y-1.5">
               {taskLists.map((list) => (
                 <label
                   key={list.id || list.name}
-                  className="flex items-center gap-3 rounded-lg border border-slate-800 px-4 py-2.5 cursor-pointer hover:bg-slate-800/50"
+                  className="flex items-center gap-3 rounded-lg border border-th-border px-4 py-2.5 cursor-pointer hover:bg-th-elevated/50"
                 >
                   <input
                     type="checkbox"
@@ -182,16 +182,16 @@ export function SettingsModal({ onClose }: Props) {
                     onChange={() => toggleTaskList(list.name)}
                     className="rounded border-slate-600 text-cyan-600 focus:ring-cyan-600"
                   />
-                  <ListChecks className="h-3.5 w-3.5 text-slate-500" />
+                  <ListChecks className="h-3.5 w-3.5 text-th-text-secondary" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-slate-200 truncate">{list.name}</p>
+                    <p className="text-sm text-th-text truncate">{list.name}</p>
                   </div>
                 </label>
               ))}
             </div>
 
             {taskLists.length > 0 && (
-              <p className="mt-2 text-[11px] text-slate-600">
+              <p className="mt-2 text-[11px] text-th-text-muted">
                 Only selected task lists will sync and appear in the tasks view.
               </p>
             )}
@@ -199,10 +199,10 @@ export function SettingsModal({ onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 border-t border-slate-800 px-5 py-3">
+        <div className="flex justify-end gap-2 border-t border-th-border px-5 py-3">
           <button
             onClick={onClose}
-            className="rounded-md px-4 py-2 text-xs text-slate-400 hover:text-slate-200"
+            className="rounded-md px-4 py-2 text-xs text-th-text-secondary hover:text-th-text"
           >
             Cancel
           </button>

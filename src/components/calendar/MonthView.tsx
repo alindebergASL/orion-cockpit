@@ -36,18 +36,18 @@ export function MonthView({ events, month, onEventClick }: Props) {
     <div className="flex h-full flex-col overflow-x-auto">
       <div className="min-w-[600px] flex flex-1 flex-col">
       {/* Header */}
-      <div className="grid grid-cols-7 border-b border-slate-800">
+      <div className="grid grid-cols-7 border-b border-th-border">
         {Array.from({ length: 7 }, (_, i) => (
-          <div key={i} className="py-1.5 text-center text-[11px] font-medium text-slate-500">
+          <div key={i} className="py-1.5 text-center text-[11px] font-medium text-th-text-secondary">
             {dayName(i)}
           </div>
         ))}
       </div>
 
       {/* Grid */}
-      <div className="grid flex-1 grid-rows-6 divide-y divide-slate-800">
+      <div className="grid flex-1 grid-rows-6 divide-y divide-th-border">
         {rows.map((week, ri) => (
-          <div key={ri} className="grid grid-cols-7 divide-x divide-slate-800">
+          <div key={ri} className="grid grid-cols-7 divide-x divide-th-border">
             {week.map((date, ci) => {
               if (!date) return <div key={ci} />;
 
@@ -59,7 +59,7 @@ export function MonthView({ events, month, onEventClick }: Props) {
                 <div
                   key={ci}
                   className={`flex flex-col overflow-hidden p-1 ${
-                    inMonth ? '' : 'bg-slate-900/40'
+                    inMonth ? '' : 'bg-th-surface/40'
                   }`}
                 >
                   {/* Date number */}
@@ -68,8 +68,8 @@ export function MonthView({ events, month, onEventClick }: Props) {
                       today
                         ? 'bg-cyan-600 font-bold text-white'
                         : inMonth
-                          ? 'text-slate-300'
-                          : 'text-slate-600'
+                          ? 'text-th-text-secondary'
+                          : 'text-th-text-muted'
                     }`}
                   >
                     {date.getDate()}
@@ -86,12 +86,12 @@ export function MonthView({ events, month, onEventClick }: Props) {
                           className={`flex items-center gap-1 truncate rounded px-1 py-0.5 text-left text-[10px] transition-colors hover:brightness-125 ${color.bg}`}
                         >
                           <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${color.dot}`} />
-                          <span className="truncate text-slate-200">{evt.title}</span>
+                          <span className="truncate text-th-text">{evt.title}</span>
                         </button>
                       );
                     })}
                     {dayEvents.length > MAX_VISIBLE && (
-                      <span className="px-1 text-[10px] text-slate-500">
+                      <span className="px-1 text-[10px] text-th-text-secondary">
                         +{dayEvents.length - MAX_VISIBLE} more
                       </span>
                     )}

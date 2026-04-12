@@ -136,11 +136,11 @@ export function CalendarTab() {
   return (
     <div className="flex h-full flex-col">
       {/* ── Header ──────────────────────────────────────────── */}
-      <div className="flex items-center justify-between border-b border-slate-800 px-4 py-2.5">
+      <div className="flex items-center justify-between border-b border-th-border px-4 py-2.5">
         <div className="flex items-center gap-3">
-          <h2 className="text-sm font-semibold text-slate-100">Calendar</h2>
+          <h2 className="text-sm font-semibold text-th-text">Calendar</h2>
           {syncedAt && (
-            <span className="flex items-center gap-1 text-[10px] text-slate-600">
+            <span className="flex items-center gap-1 text-[10px] text-th-text-muted">
               <Clock className="h-3 w-3" />
               Synced {timeAgo(syncedAt)}
             </span>
@@ -149,11 +149,11 @@ export function CalendarTab() {
 
         <div className="flex items-center gap-2">
           {/* View toggle */}
-          <div className="flex rounded-lg border border-slate-700 text-xs">
+          <div className="flex rounded-lg border border-th-border-strong text-xs">
             <button
               onClick={() => setView('week')}
               className={`rounded-l-lg px-2.5 py-1 ${
-                view === 'week' ? 'bg-cyan-600/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'
+                view === 'week' ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-secondary hover:text-th-text-secondary'
               }`}
             >
               Week
@@ -161,7 +161,7 @@ export function CalendarTab() {
             <button
               onClick={() => setView('month')}
               className={`rounded-r-lg px-2.5 py-1 ${
-                view === 'month' ? 'bg-cyan-600/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'
+                view === 'month' ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-secondary hover:text-th-text-secondary'
               }`}
             >
               Month
@@ -172,7 +172,7 @@ export function CalendarTab() {
           <button
             onClick={() => setChatOpen((o) => !o)}
             className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs transition-colors ${
-              chatOpen ? 'bg-cyan-600/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'
+              chatOpen ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-secondary hover:text-th-text-secondary'
             }`}
           >
             <MessageSquare className="h-3.5 w-3.5" />
@@ -182,7 +182,7 @@ export function CalendarTab() {
           {/* Add event */}
           <button
             onClick={() => setShowCreateForm(true)}
-            className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs text-slate-400 hover:bg-slate-800 hover:text-cyan-400"
+            className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs text-th-text-secondary hover:bg-th-elevated hover:text-cyan-400"
           >
             <Plus className="h-3.5 w-3.5" />
             Add
@@ -192,7 +192,7 @@ export function CalendarTab() {
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs text-slate-400 hover:bg-slate-800 hover:text-slate-200 disabled:opacity-50"
+            className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs text-th-text-secondary hover:bg-th-elevated hover:text-th-text disabled:opacity-50"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} />
           </button>
@@ -200,15 +200,15 @@ export function CalendarTab() {
       </div>
 
       {/* ── Date navigation ─────────────────────────────────── */}
-      <div className="flex items-center justify-between border-b border-slate-800/50 px-4 py-1.5">
+      <div className="flex items-center justify-between border-b border-th-border px-4 py-1.5">
         <div className="flex items-center gap-1">
-          <button onClick={() => navigate(-1)} className="rounded p-1 text-slate-500 hover:text-slate-200">
+          <button onClick={() => navigate(-1)} className="rounded p-1 text-th-text-secondary hover:text-th-text">
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <button onClick={() => navigate(1)} className="rounded p-1 text-slate-500 hover:text-slate-200">
+          <button onClick={() => navigate(1)} className="rounded p-1 text-th-text-secondary hover:text-th-text">
             <ChevronRight className="h-4 w-4" />
           </button>
-          <span className="ml-2 text-sm font-medium text-slate-200">{rangeLabel}</span>
+          <span className="ml-2 text-sm font-medium text-th-text">{rangeLabel}</span>
         </div>
 
         <div className="flex items-center gap-3">
@@ -217,7 +217,7 @@ export function CalendarTab() {
               {calendarNames.slice(0, 5).map((name) => {
                 const color = getCalendarColor(name);
                 return (
-                  <span key={name} className="flex items-center gap-1 text-[10px] text-slate-500">
+                  <span key={name} className="flex items-center gap-1 text-[10px] text-th-text-secondary">
                     <span className={`inline-block h-2 w-2 rounded-full ${color.dot}`} />
                     {name}
                   </span>
@@ -228,7 +228,7 @@ export function CalendarTab() {
 
           <button
             onClick={goToday}
-            className="rounded-md border border-slate-700 px-2 py-0.5 text-xs text-slate-400 hover:text-slate-200"
+            className="rounded-md border border-th-border-strong px-2 py-0.5 text-xs text-th-text-secondary hover:text-th-text"
           >
             Today
           </button>
@@ -239,12 +239,12 @@ export function CalendarTab() {
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 overflow-hidden">
           {loading && events.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-500">
+            <div className="flex h-full flex-col items-center justify-center gap-3 text-th-text-secondary">
               <RefreshCw className="h-8 w-8 animate-spin" />
               <p className="text-sm">Loading calendar...</p>
             </div>
           ) : error && events.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-500">
+            <div className="flex h-full flex-col items-center justify-center gap-3 text-th-text-secondary">
               <AlertTriangle className="h-8 w-8 text-amber-500" />
               <p className="max-w-sm text-center text-sm">{error}</p>
               <button
@@ -263,12 +263,12 @@ export function CalendarTab() {
 
         {/* Chat panel */}
         {chatOpen && (
-          <div className="hidden sm:flex w-80 flex-col border-l border-slate-800 bg-slate-900/50">
-            <div className="flex items-center justify-between border-b border-slate-800 px-3 py-2">
-              <span className="text-xs font-medium text-slate-400">Ask about your calendar</span>
+          <div className="hidden sm:flex w-80 flex-col border-l border-th-border bg-th-surface">
+            <div className="flex items-center justify-between border-b border-th-border px-3 py-2">
+              <span className="text-xs font-medium text-th-text-secondary">Ask about your calendar</span>
               <button
                 onClick={() => setChatOpen(false)}
-                className="rounded p-1 text-slate-500 hover:text-slate-300"
+                className="rounded p-1 text-th-text-secondary hover:text-th-text-secondary"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -308,7 +308,7 @@ function EventDetail({ event, onClose }: { event: CalendarEvent; onClose: () => 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
       <div
-        className="w-11/12 max-w-md rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl"
+        className="w-11/12 max-w-md rounded-xl border border-th-border-strong bg-th-surface p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-start justify-between">
@@ -316,14 +316,14 @@ function EventDetail({ event, onClose }: { event: CalendarEvent; onClose: () => 
             {event.calendar && (
               <div className="mb-1 text-xs text-cyan-400">{event.calendar}</div>
             )}
-            <h3 className="text-lg font-semibold text-slate-100">{event.title}</h3>
+            <h3 className="text-lg font-semibold text-th-text">{event.title}</h3>
           </div>
-          <button onClick={onClose} className="rounded p-1 text-slate-500 hover:text-slate-300">
+          <button onClick={onClose} className="rounded p-1 text-th-text-secondary hover:text-th-text-secondary">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="space-y-2 text-sm text-slate-400">
+        <div className="space-y-2 text-sm text-th-text-secondary">
           <div className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
             {event.allDay
@@ -333,13 +333,13 @@ function EventDetail({ event, onClose }: { event: CalendarEvent; onClose: () => 
 
           {event.location && (
             <div className="flex items-center gap-2">
-              <span className="text-slate-600">Location:</span>
+              <span className="text-th-text-muted">Location:</span>
               {event.location}
             </div>
           )}
 
           {event.description && (
-            <p className="mt-3 whitespace-pre-wrap text-slate-400">{event.description}</p>
+            <p className="mt-3 whitespace-pre-wrap text-th-text-secondary">{event.description}</p>
           )}
         </div>
       </div>
@@ -398,23 +398,23 @@ function CreateEventForm({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
       <div
-        className="w-11/12 max-w-md rounded-xl border border-slate-700 bg-slate-900 shadow-2xl"
+        className="w-11/12 max-w-md rounded-xl border border-th-border-strong bg-th-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
-          <h3 className="text-sm font-semibold text-slate-100">New Event</h3>
-          <button onClick={onClose} className="rounded p-1 text-slate-500 hover:text-slate-300">
+        <div className="flex items-center justify-between border-b border-th-border px-5 py-4">
+          <h3 className="text-sm font-semibold text-th-text">New Event</h3>
+          <button onClick={onClose} className="rounded p-1 text-th-text-secondary hover:text-th-text-secondary">
             <X className="h-4 w-4" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 p-5">
           <div>
-            <label className="mb-1 block text-[11px] text-slate-500">Title</label>
+            <label className="mb-1 block text-[11px] text-th-text-secondary">Title</label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-600"
+              className="w-full rounded-md border border-th-border-strong bg-th-input px-3 py-2 text-sm text-th-text outline-none focus:border-cyan-600"
               placeholder="Event title"
               autoFocus
               required
@@ -423,20 +423,20 @@ function CreateEventForm({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-[11px] text-slate-500">Date</label>
+              <label className="mb-1 block text-[11px] text-th-text-secondary">Date</label>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-600"
+                className="w-full rounded-md border border-th-border-strong bg-th-input px-3 py-2 text-sm text-th-text outline-none focus:border-cyan-600"
               />
             </div>
             <div>
-              <label className="mb-1 block text-[11px] text-slate-500">Calendar</label>
+              <label className="mb-1 block text-[11px] text-th-text-secondary">Calendar</label>
               <select
                 value={calendar}
                 onChange={(e) => setCalendar(e.target.value)}
-                className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-600"
+                className="w-full rounded-md border border-th-border-strong bg-th-input px-3 py-2 text-sm text-th-text outline-none focus:border-cyan-600"
               >
                 {calendarNames.map((n) => (
                   <option key={n} value={n}>{n}</option>
@@ -447,7 +447,7 @@ function CreateEventForm({
           </div>
 
           <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-xs text-slate-400">
+            <label className="flex items-center gap-2 text-xs text-th-text-secondary">
               <input
                 type="checkbox"
                 checked={allDay}
@@ -461,43 +461,43 @@ function CreateEventForm({
           {!allDay && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1 block text-[11px] text-slate-500">Start Time</label>
+                <label className="mb-1 block text-[11px] text-th-text-secondary">Start Time</label>
                 <input
                   type="time"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-600"
+                  className="w-full rounded-md border border-th-border-strong bg-th-input px-3 py-2 text-sm text-th-text outline-none focus:border-cyan-600"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[11px] text-slate-500">End Time</label>
+                <label className="mb-1 block text-[11px] text-th-text-secondary">End Time</label>
                 <input
                   type="time"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-600"
+                  className="w-full rounded-md border border-th-border-strong bg-th-input px-3 py-2 text-sm text-th-text outline-none focus:border-cyan-600"
                 />
               </div>
             </div>
           )}
 
           <div>
-            <label className="mb-1 block text-[11px] text-slate-500">Location</label>
+            <label className="mb-1 block text-[11px] text-th-text-secondary">Location</label>
             <input
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-600"
+              className="w-full rounded-md border border-th-border-strong bg-th-input px-3 py-2 text-sm text-th-text outline-none focus:border-cyan-600"
               placeholder="Optional"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-[11px] text-slate-500">Description</label>
+            <label className="mb-1 block text-[11px] text-th-text-secondary">Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="w-full resize-none rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-600"
+              className="w-full resize-none rounded-md border border-th-border-strong bg-th-input px-3 py-2 text-sm text-th-text outline-none focus:border-cyan-600"
               placeholder="Optional"
             />
           </div>
@@ -510,7 +510,7 @@ function CreateEventForm({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md px-4 py-2 text-xs text-slate-400 hover:text-slate-200"
+              className="rounded-md px-4 py-2 text-xs text-th-text-secondary hover:text-th-text"
             >
               Cancel
             </button>
