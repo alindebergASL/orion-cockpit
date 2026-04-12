@@ -2,44 +2,21 @@ import { getDb } from '../db.js';
 import { openclawClient } from './openclaw.js';
 
 /**
- * Sync calendar events from OpenClaw into SQLite for a given user.
- * Asks OpenClaw for the user's upcoming events, then upserts them.
+ * Sync calendar events from OpenClaw's direct API into SQLite.
+ * Uses GET /api/calendar/events (no LLM, calls gog directly).
  */
 export async function syncCalendar(userId: number): Promise<unknown[]> {
   const db = getDb();
 
-  // Get user info for the OpenClaw request
   const user = db.prepare('SELECT username, display_name FROM users WHERE id = ?')
     .get(userId) as { username: string; display_name: string } | undefined;
 
   if (!user) throw new Error('User not found');
 
-  // Ask OpenClaw to fetch calendar events
-  const response = await openclawClient.chatOnce([
-    {
-      role: 'user',
-      content: `Return ALL calendar events for the next 14 days from ALL of ${user.display_name}'s Google Calendars, including any shared or family calendars (such as "Lindeberg Family"). Each event should have: id, title, start (ISO), end (ISO), calendar (the calendar name it belongs to), location, description, allDay (boolean). Return ONLY the JSON array, no other text.`,
-    },
-  ]);
-
-  let events: Array<{
-    id?: string;
-    title: string;
-    start: string;
-    end: string;
-    calendar: string;
-    location?: string;
-    description?: string;
-    allDay?: boolean;
-  }>;
-
-  try {
-    // Extract JSON from response (may be wrapped in markdown code blocks)
-    const jsonMatch = response.match(/\[[\s\S]*\]/);
-    events = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-  } catch {
-    throw new Error('Failed to parse calendar data from OpenClaw');
-  }
+  // Fetch next 14 days of events via direct API
+  const from = new Date().toISOString();
+  const to = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+  const events = await openclawClient.getCalendarEvents(from, to);
 
   // Clear existing events for this user and re-insert
   const now = new Date().toISOString();
@@ -49,9 +26,9 @@ export async function syncCalendar(userId: number): Promise<unknown[]> {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  const insertMany = db.transaction((evts: typeof events) => {
+  const insertMany = db.transaction(() => {
     deleteStmt.run(userId);
-    for (const e of evts) {
+    for (const e of events) {
       insertStmt.run(
         e.id || null, userId, e.title, e.start, e.end,
         e.calendar, e.location || null, e.description || null,
@@ -60,9 +37,8 @@ export async function syncCalendar(userId: number): Promise<unknown[]> {
     }
   });
 
-  insertMany(events);
+  insertMany();
 
-  // Log the sync
   db.prepare('INSERT INTO sync_log (user_id, data_type, last_synced_at, status) VALUES (?, ?, ?, ?)')
     .run(userId, 'calendar', now, 'success');
 
@@ -70,7 +46,8 @@ export async function syncCalendar(userId: number): Promise<unknown[]> {
 }
 
 /**
- * Sync tasks from OpenClaw into SQLite for a given user.
+ * Sync tasks from OpenClaw's direct API into SQLite.
+ * Uses GET /api/tasks (no LLM, calls remindctl directly).
  */
 export async function syncTasks(userId: number): Promise<unknown[]> {
   const db = getDb();
@@ -80,29 +57,7 @@ export async function syncTasks(userId: number): Promise<unknown[]> {
 
   if (!user) throw new Error('User not found');
 
-  const response = await openclawClient.chatOnce([
-    {
-      role: 'user',
-      content: `Return ${user.display_name}'s tasks as JSON array. Each task should have: id, title, status (open/in_progress/completed), priority (low/medium/high), dueDate (ISO or null), description, listName. Return ONLY the JSON array, no other text.`,
-    },
-  ]);
-
-  let tasks: Array<{
-    id?: string;
-    title: string;
-    status: string;
-    priority?: string;
-    dueDate?: string;
-    description?: string;
-    listName?: string;
-  }>;
-
-  try {
-    const jsonMatch = response.match(/\[[\s\S]*\]/);
-    tasks = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-  } catch {
-    throw new Error('Failed to parse task data from OpenClaw');
-  }
+  const tasks = await openclawClient.getTasks();
 
   const now = new Date().toISOString();
   const deleteStmt = db.prepare('DELETE FROM tasks WHERE user_id = ?');
@@ -111,9 +66,9 @@ export async function syncTasks(userId: number): Promise<unknown[]> {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  const insertMany = db.transaction((tks: typeof tasks) => {
+  const insertMany = db.transaction(() => {
     deleteStmt.run(userId);
-    for (const t of tks) {
+    for (const t of tasks) {
       insertStmt.run(
         t.id || null, userId, t.title, t.status || 'open',
         t.priority || null, t.dueDate || null,
@@ -122,7 +77,7 @@ export async function syncTasks(userId: number): Promise<unknown[]> {
     }
   });
 
-  insertMany(tasks);
+  insertMany();
 
   db.prepare('INSERT INTO sync_log (user_id, data_type, last_synced_at, status) VALUES (?, ?, ?, ?)')
     .run(userId, 'tasks', now, 'success');
@@ -131,21 +86,16 @@ export async function syncTasks(userId: number): Promise<unknown[]> {
 }
 
 /**
- * Sync OpenClaw's soul.md into the settings table.
- * Called once on startup and then every 24 hours.
+ * Sync OpenClaw's SOUL.md into the settings table.
+ * Uses GET /api/soul (no LLM, reads file directly).
  */
 export async function syncSoulMd(): Promise<string> {
   const db = getDb();
 
-  const response = await openclawClient.chatOnce([
-    {
-      role: 'user',
-      content: 'Return the full contents of your soul.md file. Return ONLY the raw file contents, no other text, no markdown code fences.',
-    },
-  ]);
+  const content = await openclawClient.getSoul();
 
-  if (!response || response.length < 50) {
-    throw new Error('soul.md response too short or empty');
+  if (!content || content.length < 50) {
+    throw new Error('SOUL.md response too short or empty');
   }
 
   const now = new Date().toISOString();
@@ -153,11 +103,11 @@ export async function syncSoulMd(): Promise<string> {
   db.prepare(`
     INSERT INTO settings (key, value, updated_at) VALUES ('soul_md', ?, ?)
     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
-  `).run(response, now);
+  `).run(content, now);
 
   db.prepare('INSERT INTO sync_log (user_id, data_type, last_synced_at, status) VALUES (?, ?, ?, ?)')
     .run(null, 'soul_md', now, 'success');
 
-  console.log(`Synced soul.md (${response.length} chars)`);
-  return response;
+  console.log(`Synced SOUL.md (${content.length} chars)`);
+  return content;
 }

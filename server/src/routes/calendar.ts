@@ -81,16 +81,14 @@ calendarRouter.post('/events', async (req, res) => {
     syncedAt: now,
   });
 
-  // Sync to OpenClaw in the background (don't await)
-  const user = getDb().prepare('SELECT display_name FROM users WHERE id = ?')
-    .get(userId) as { display_name: string };
-
-  openclawClient.chatOnce([
-    {
-      role: 'user',
-      content: `Create a calendar event for ${user.display_name}: title: "${title}", start: ${start}, end: ${end}${calendar ? `, calendar: "${calendar}"` : ''}${location ? `, location: "${location}"` : ''}${description ? `, description: "${description}"` : ''}${allDay ? ', all day event' : ''}. Just confirm briefly.`,
-    },
-  ]).then(() => syncCalendar(userId)).catch((err) =>
+  // Create via direct API in the background (don't await)
+  openclawClient.createCalendarEvent({
+    title, start, end,
+    calendar: calendar || undefined,
+    location: location || undefined,
+    description: description || undefined,
+    allDay: allDay || undefined,
+  }).then(() => syncCalendar(userId)).catch((err) =>
     console.error('Background calendar sync failed:', err.message),
   );
 });

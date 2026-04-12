@@ -60,20 +60,20 @@ export async function executeCalendarTool(
       return JSON.stringify({ success: true, eventCount: events.length, events });
     }
     case 'create_calendar_event': {
-      // Get user display name for the OpenClaw request
-      const user = getDb().prepare('SELECT display_name FROM users WHERE id = ?')
-        .get(userId) as { display_name: string };
-      const response = await openclawClient.chatOnce([
-        {
-          role: 'user',
-          content: `Create a calendar event for ${user.display_name}: ${JSON.stringify(args)}. Confirm with the event details.`,
-        },
-      ]);
-      // Re-sync after creation
+      const created = await openclawClient.createCalendarEvent({
+        title: args.title as string,
+        start: args.start as string,
+        end: args.end as string,
+        calendar: args.calendar as string | undefined,
+        location: args.location as string | undefined,
+        description: args.description as string | undefined,
+        allDay: args.allDay as boolean | undefined,
+      });
       await syncCalendar(userId);
-      return response;
+      return JSON.stringify({ success: true, event: created });
     }
     case 'update_calendar_event': {
+      // Update not yet supported via direct API, fall back to chatOnce
       const user = getDb().prepare('SELECT display_name FROM users WHERE id = ?')
         .get(userId) as { display_name: string };
       const response = await openclawClient.chatOnce([

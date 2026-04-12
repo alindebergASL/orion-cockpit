@@ -74,16 +74,13 @@ tasksRouter.post('/', async (req, res) => {
     listName: list || null,
   });
 
-  // Sync to OpenClaw in the background
-  const user = getDb().prepare('SELECT display_name FROM users WHERE id = ?')
-    .get(userId) as { display_name: string };
-
-  openclawClient.chatOnce([
-    {
-      role: 'user',
-      content: `Create a task for ${user.display_name}: "${title}"${list ? ` in list "${list}"` : ''}${priority ? `, priority: ${priority}` : ''}${dueDate ? `, due: ${dueDate}` : ''}. Just confirm briefly.`,
-    },
-  ]).then(() => syncTasks(userId)).catch((err) =>
+  // Create via direct API in the background
+  openclawClient.createTask({
+    title,
+    list: list || undefined,
+    priority: priority || undefined,
+    dueDate: dueDate || undefined,
+  }).then(() => syncTasks(userId)).catch((err) =>
     console.error('Background task sync failed:', err.message),
   );
 });
@@ -113,20 +110,14 @@ tasksRouter.put('/:id/status', async (req, res) => {
     .prepare('UPDATE tasks SET status = ? WHERE id = ?')
     .run(status, taskId);
 
-  // Sync the change to OpenClaw/Google Tasks
-  const user = getDb().prepare('SELECT display_name FROM users WHERE id = ?')
-    .get(userId) as { display_name: string };
-
-  try {
-    await openclawClient.chatOnce([
-      {
-        role: 'user',
-        content: `Mark the task "${task.title}" as ${status === 'completed' ? 'completed' : 'not completed (open)'} for ${user.display_name}. Just confirm briefly.`,
-      },
-    ]);
-  } catch {
-    // OpenClaw sync failed, but local update succeeded — log but don't fail
-    console.error(`Failed to sync task status to OpenClaw for task ${taskId}`);
+  // Sync status to OpenClaw via direct API (non-blocking)
+  if (task.external_id) {
+    openclawClient.updateTaskStatus(
+      task.external_id,
+      status as 'completed' | 'open',
+    ).catch(() =>
+      console.error(`Failed to sync task status to OpenClaw for task ${taskId}`),
+    );
   }
 
   res.json({ ok: true });

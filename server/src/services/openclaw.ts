@@ -106,6 +106,95 @@ export class OpenClawClient {
       return false;
     }
   }
+
+  // ── Direct API endpoints (no LLM in the loop) ──────────
+
+  /** Fetch soul.md contents directly. */
+  async getSoul(): Promise<string> {
+    const res = await fetch(`${this.baseUrl}/api/soul`, {
+      headers: this.headers(),
+    });
+    if (!res.ok) throw new Error(`Soul fetch error ${res.status}: ${await res.text()}`);
+    return res.text();
+  }
+
+  /** Fetch calendar events directly via gog. */
+  async getCalendarEvents(from: string, to: string): Promise<CalendarEventRaw[]> {
+    const res = await fetch(`${this.baseUrl}/api/calendar/events?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, {
+      headers: this.headers(),
+    });
+    if (!res.ok) throw new Error(`Calendar fetch error ${res.status}: ${await res.text()}`);
+    return res.json() as Promise<CalendarEventRaw[]>;
+  }
+
+  /** Create a calendar event directly via gog. */
+  async createCalendarEvent(data: {
+    title: string; start: string; end: string;
+    calendar?: string; location?: string; description?: string; allDay?: boolean;
+  }): Promise<CalendarEventRaw> {
+    const res = await fetch(`${this.baseUrl}/api/calendar/events`, {
+      method: 'POST',
+      headers: this.headers(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(`Calendar create error ${res.status}: ${await res.text()}`);
+    return res.json() as Promise<CalendarEventRaw>;
+  }
+
+  /** Fetch tasks directly via remindctl. */
+  async getTasks(list?: string): Promise<TaskRaw[]> {
+    const url = list
+      ? `${this.baseUrl}/api/tasks?list=${encodeURIComponent(list)}`
+      : `${this.baseUrl}/api/tasks`;
+    const res = await fetch(url, { headers: this.headers() });
+    if (!res.ok) throw new Error(`Tasks fetch error ${res.status}: ${await res.text()}`);
+    return res.json() as Promise<TaskRaw[]>;
+  }
+
+  /** Create a task directly via remindctl. */
+  async createTask(data: {
+    title: string; list?: string; priority?: string; dueDate?: string; notes?: string;
+  }): Promise<TaskRaw> {
+    const res = await fetch(`${this.baseUrl}/api/tasks`, {
+      method: 'POST',
+      headers: this.headers(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(`Task create error ${res.status}: ${await res.text()}`);
+    return res.json() as Promise<TaskRaw>;
+  }
+
+  /** Update task status directly via remindctl. */
+  async updateTaskStatus(id: string, status: 'completed' | 'open'): Promise<void> {
+    const res = await fetch(`${this.baseUrl}/api/tasks/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: this.headers(),
+      body: JSON.stringify({ status }),
+    });
+    if (!res.ok) throw new Error(`Task update error ${res.status}: ${await res.text()}`);
+  }
+}
+
+export interface CalendarEventRaw {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  calendar: string;
+  calendarId?: string;
+  location?: string | null;
+  description?: string | null;
+  allDay: boolean;
+}
+
+export interface TaskRaw {
+  id: string;
+  title: string;
+  status: string;
+  priority?: string | null;
+  dueDate?: string | null;
+  description?: string | null;
+  listName?: string | null;
 }
 
 export const openclawClient = new OpenClawClient();

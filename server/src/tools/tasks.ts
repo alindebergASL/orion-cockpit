@@ -57,18 +57,26 @@ export async function executeTaskTool(
       return JSON.stringify({ success: true, taskCount: tasks.length, tasks });
     }
     case 'create_task': {
-      const user = getDb().prepare('SELECT display_name FROM users WHERE id = ?')
-        .get(userId) as { display_name: string };
-      const response = await openclawClient.chatOnce([
-        {
-          role: 'user',
-          content: `Create a task for ${user.display_name}: ${JSON.stringify(args)}. Confirm with the task details.`,
-        },
-      ]);
+      const created = await openclawClient.createTask({
+        title: args.title as string,
+        list: args.list as string | undefined,
+        priority: args.priority as string | undefined,
+        dueDate: args.dueDate as string | undefined,
+        notes: args.description as string | undefined,
+      });
       await syncTasks(userId);
-      return response;
+      return JSON.stringify({ success: true, task: created });
     }
     case 'update_task': {
+      if (args.status && args.id) {
+        await openclawClient.updateTaskStatus(
+          args.id as string,
+          args.status as 'completed' | 'open',
+        );
+        await syncTasks(userId);
+        return JSON.stringify({ success: true });
+      }
+      // For non-status updates, fall back to chatOnce
       const user = getDb().prepare('SELECT display_name FROM users WHERE id = ?')
         .get(userId) as { display_name: string };
       const response = await openclawClient.chatOnce([
