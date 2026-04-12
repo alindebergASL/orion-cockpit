@@ -172,7 +172,7 @@ export function TasksTab() {
           onChange={(e) => setQuickAdd(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') handleQuickAdd(); }}
           placeholder="Add a task..."
-          className="flex-1 bg-transparent text-sm text-slate-200 outline-none placeholder-slate-600"
+          className="flex-1 bg-transparent text-base md:text-sm text-slate-200 outline-none placeholder-slate-600"
         />
         {quickAdd && (
           <button

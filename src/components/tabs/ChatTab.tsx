@@ -89,7 +89,7 @@ export function ChatTab() {
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               placeholder="Search... (Ctrl+K)"
-              className="flex-1 bg-transparent text-xs text-th-text outline-none placeholder-th-text-muted"
+              className="flex-1 bg-transparent text-base md:text-xs text-th-text outline-none placeholder-th-text-muted"
             />
           </div>
         </div>
