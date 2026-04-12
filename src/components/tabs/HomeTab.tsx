@@ -211,7 +211,7 @@ export function HomeTab() {
   else if (dayOfWeek === 0 || dayOfWeek === 6) briefingParts.push('Enjoy your weekend!');
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
+    <div className="flex h-full flex-col overflow-x-hidden overflow-y-auto">
       <div className="mx-auto w-full max-w-2xl px-4 py-6 md:px-6 md:py-8">
         {/* Greeting + briefing */}
         <div className="mb-6">
@@ -221,9 +221,9 @@ export function HomeTab() {
               {greeting.text}, {user?.displayName?.split(' ')[0]}
             </h1>
           </div>
-          <p className="text-sm text-th-text-muted ml-10 mb-3">{todayStr}</p>
+          <p className="text-sm text-th-text-muted ml-0 md:ml-10 mb-3">{todayStr}</p>
 
-          <div className="ml-10 rounded-lg border border-th-border bg-th-surface px-4 py-3 text-sm text-th-text-secondary leading-relaxed">
+          <div className="ml-0 md:ml-10 rounded-lg border border-th-border bg-th-surface px-4 py-3 text-sm text-th-text-secondary leading-relaxed">
             {briefingParts.join(' ')}
           </div>
         </div>
@@ -268,8 +268,8 @@ export function HomeTab() {
                 <CloudSun className="h-4 w-4 text-cyan-400" />
                 <h2 className="text-sm font-semibold text-th-text-secondary">Weather</h2>
               </div>
-              <div className="grid grid-cols-3 gap-2 md:gap-3">
-                <div className="rounded-lg border border-th-border bg-th-surface px-3 py-3 text-center">
+              <div className="grid grid-cols-3 gap-1.5 md:gap-3">
+                <div className="rounded-lg border border-th-border bg-th-surface px-2 py-2.5 md:px-3 md:py-3 text-center">
                   <p className="text-[11px] text-th-text-muted mb-1">Now</p>
                   <p className="text-2xl font-semibold text-th-text">{weather.current.tempF}&deg;</p>
                   <p className="text-xs text-th-text-secondary mt-1">{weather.current.description}</p>
@@ -278,14 +278,14 @@ export function HomeTab() {
                     Feels {weather.current.feelsLikeF}&deg;
                   </p>
                 </div>
-                <div className="rounded-lg border border-th-border bg-th-surface px-3 py-3 text-center">
+                <div className="rounded-lg border border-th-border bg-th-surface px-2 py-2.5 md:px-3 md:py-3 text-center">
                   <p className="text-[11px] text-th-text-muted mb-1">Today</p>
                   <p className="text-lg font-semibold text-th-text">{weather.today.maxTempF}&deg; <span className="text-th-text-muted font-normal">/ {weather.today.minTempF}&deg;</span></p>
                   {weather.today.description && (
                     <p className="text-xs text-th-text-secondary mt-1">{weather.today.description}</p>
                   )}
                 </div>
-                <div className="rounded-lg border border-th-border bg-th-surface px-3 py-3 text-center">
+                <div className="rounded-lg border border-th-border bg-th-surface px-2 py-2.5 md:px-3 md:py-3 text-center">
                   <p className="text-[11px] text-th-text-muted mb-1">Tomorrow</p>
                   <p className="text-lg font-semibold text-th-text">{weather.tomorrow.maxTempF}&deg; <span className="text-th-text-muted font-normal">/ {weather.tomorrow.minTempF}&deg;</span></p>
                   {weather.tomorrow.description && (
@@ -303,7 +303,7 @@ export function HomeTab() {
                 <Timer className="h-4 w-4 text-cyan-400" />
                 <h2 className="text-sm font-semibold text-th-text-secondary">Coming Up</h2>
               </div>
-              <div className="flex gap-2 overflow-x-auto">
+              <div className="flex gap-2 overflow-x-auto max-w-full">
                 {countdownEvents.map((event) => {
                   const days = daysUntil(event.start);
                   return (
