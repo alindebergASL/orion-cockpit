@@ -263,7 +263,7 @@ export function CalendarTab() {
 
         {/* Chat panel */}
         {chatOpen && (
-          <div className="flex w-80 flex-col border-l border-slate-800 bg-slate-900/50">
+          <div className="hidden sm:flex w-80 flex-col border-l border-slate-800 bg-slate-900/50">
             <div className="flex items-center justify-between border-b border-slate-800 px-3 py-2">
               <span className="text-xs font-medium text-slate-400">Ask about your calendar</span>
               <button
@@ -308,7 +308,7 @@ function EventDetail({ event, onClose }: { event: CalendarEvent; onClose: () => 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl"
+        className="w-11/12 max-w-md rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-start justify-between">
@@ -398,7 +398,7 @@ function CreateEventForm({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 shadow-2xl"
+        className="w-11/12 max-w-md rounded-xl border border-slate-700 bg-slate-900 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">

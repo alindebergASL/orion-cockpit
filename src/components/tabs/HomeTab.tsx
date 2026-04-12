@@ -179,7 +179,7 @@ export function HomeTab() {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      <div className="mx-auto w-full max-w-2xl px-6 py-8">
+      <div className="mx-auto w-full max-w-2xl px-4 py-6 md:px-6 md:py-8">
         {/* Greeting + briefing */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
@@ -203,7 +203,7 @@ export function HomeTab() {
                 <CloudSun className="h-4 w-4 text-cyan-400" />
                 <h2 className="text-sm font-semibold text-th-text-secondary">Weather</h2>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2 md:gap-3">
                 {/* Current */}
                 <div className="rounded-lg border border-th-border bg-th-surface px-4 py-3 text-center">
                   <p className="text-[11px] text-th-text-muted mb-1">Now</p>
@@ -351,7 +351,7 @@ function EventDetail({ event, onClose }: { event: CalendarEvent; onClose: () => 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl"
+        className="w-11/12 max-w-md rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-start justify-between">

@@ -19,7 +19,8 @@ export function WeekView({ events, weekStart, onEventClick }: Props) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   return (
-    <div className="grid h-full grid-cols-7 divide-x divide-slate-800">
+    <div className="h-full overflow-x-auto">
+    <div className="grid h-full grid-cols-7 divide-x divide-slate-800 min-w-[600px]">
       {days.map((date, i) => {
         const dayEvents = eventsForDay(events, date);
         const today = isToday(date);
@@ -65,6 +66,7 @@ export function WeekView({ events, weekStart, onEventClick }: Props) {
           </div>
         );
       })}
+    </div>
     </div>
   );
 }

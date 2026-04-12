@@ -65,16 +65,19 @@ export function Layout({ activeTab, onTabChange, children }: LayoutProps) {
   return (
     <div className="flex h-full">
       {/* Mobile header */}
-      <div className="fixed top-0 left-0 right-0 z-30 flex items-center justify-between border-b border-th-border bg-th-surface px-4 py-2 md:hidden">
-        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="rounded p-1 text-th-text-secondary">
+      <div className="fixed top-0 left-0 right-0 z-30 flex items-center justify-between border-b border-th-border bg-th-surface px-4 py-2.5 md:hidden">
+        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="rounded-lg p-2 text-th-text-secondary">
           {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-cyan-600 text-xs font-bold">OC</div>
-        <div className="w-7" />
+        <div className="w-9" />
       </div>
 
-      {/* Sidebar — hidden on mobile unless menu open */}
-      <aside className={`${mobileMenuOpen ? 'fixed inset-0 z-20 pt-12' : 'hidden'} md:relative md:flex md:pt-0 w-20 flex-col items-center justify-between border-r border-th-border bg-th-surface py-4`}>
+      {/* Sidebar — full overlay on mobile, fixed narrow on desktop */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-10 bg-black/50 md:hidden" onClick={() => setMobileMenuOpen(false)} />
+      )}
+      <aside className={`${mobileMenuOpen ? 'fixed left-0 top-0 bottom-0 z-20 pt-14 w-20 overflow-y-auto' : 'hidden'} md:relative md:flex md:pt-0 w-20 flex-col items-center justify-between border-r border-th-border bg-th-surface py-4`}>
         <div className="flex flex-col items-center gap-1">
           {/* Logo (desktop only) */}
           <div className="mb-6 hidden md:flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-600 text-sm font-bold tracking-tight text-white">

@@ -78,9 +78,9 @@ export function NotesTab() {
   }
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full flex-col md:flex-row">
       {/* Notes sidebar */}
-      <div className="flex w-64 flex-col border-r border-slate-800 bg-slate-900/50">
+      <div className={`${activeId !== null ? 'hidden md:flex' : 'flex'} w-full md:w-64 flex-col border-b md:border-b-0 md:border-r border-slate-800 bg-slate-900/50`}>
         <div className="flex items-center justify-between border-b border-slate-800 px-3 py-3">
           <h2 className="text-sm font-semibold text-slate-100">Notes</h2>
           <button
@@ -130,9 +130,17 @@ export function NotesTab() {
       </div>
 
       {/* Editor */}
-      <div className="flex flex-1 flex-col">
+      <div className={`${activeId === null ? 'hidden md:flex' : 'flex'} flex-1 flex-col`}>
         {activeNote ? (
           <>
+            <div className="flex items-center border-b border-slate-800 md:hidden">
+              <button
+                onClick={() => setActiveId(null)}
+                className="px-3 py-3 text-xs text-cyan-400"
+              >
+                &larr; Back
+              </button>
+            </div>
             <input
               value={activeNote.title}
               onChange={(e) => updateNote('title', e.target.value)}

@@ -103,7 +103,7 @@ export function UserManagement({ onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 shadow-2xl"
+        className="w-11/12 max-w-lg rounded-xl border border-slate-700 bg-slate-900 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -174,7 +174,7 @@ export function UserManagement({ onClose }: Props) {
                   {/* Inline edit form */}
                   {editingId === u.id && (
                     <div className="mt-1 rounded-lg border border-slate-800 bg-slate-800/50 p-3">
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className="mb-1 block text-[11px] text-slate-500">Display Name</label>
                           <input
@@ -250,7 +250,7 @@ export function UserManagement({ onClose }: Props) {
           {/* Add user form */}
           {showForm ? (
             <form onSubmit={handleCreate} className="mt-4 space-y-3 rounded-lg border border-slate-800 p-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block text-[11px] text-slate-500">Username</label>
                   <input
@@ -271,7 +271,7 @@ export function UserManagement({ onClose }: Props) {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block text-[11px] text-slate-500">Display Name</label>
                   <input

@@ -33,7 +33,8 @@ export function MonthView({ events, month, onEventClick }: Props) {
   const thisMonth = month.getMonth();
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col overflow-x-auto">
+      <div className="min-w-[600px] flex flex-1 flex-col">
       {/* Header */}
       <div className="grid grid-cols-7 border-b border-slate-800">
         {Array.from({ length: 7 }, (_, i) => (
@@ -100,6 +101,7 @@ export function MonthView({ events, month, onEventClick }: Props) {
             })}
           </div>
         ))}
+      </div>
       </div>
     </div>
   );

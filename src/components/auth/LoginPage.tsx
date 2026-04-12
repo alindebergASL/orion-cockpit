@@ -25,7 +25,7 @@ export function LoginPage() {
 
   return (
     <div className="flex h-full items-center justify-center bg-th-base">
-      <div className="w-full max-w-sm">
+      <div className="w-11/12 max-w-sm">
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center gap-3">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-600 text-lg font-bold tracking-tight">
