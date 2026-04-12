@@ -118,6 +118,15 @@ export class OpenClawClient {
     return res.text();
   }
 
+  /** Fetch available calendars list. */
+  async getCalendarList(): Promise<{ id: string; name: string }[]> {
+    const res = await fetch(`${this.baseUrl}/api/calendar/calendars`, {
+      headers: this.headers(),
+    });
+    if (!res.ok) throw new Error(`Calendar list error ${res.status}: ${await res.text()}`);
+    return res.json() as Promise<{ id: string; name: string }[]>;
+  }
+
   /** Fetch calendar events directly via gog. */
   async getCalendarEvents(from: string, to: string): Promise<CalendarEventRaw[]> {
     const res = await fetch(`${this.baseUrl}/api/calendar/events?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, {

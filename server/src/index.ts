@@ -12,6 +12,7 @@ import { calendarRouter } from './routes/calendar.js';
 import { tasksRouter } from './routes/tasks.js';
 import { notesRouter } from './routes/notes.js';
 import { conversationsRouter } from './routes/conversations.js';
+import { settingsRouter } from './routes/settings.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -28,6 +29,7 @@ app.use('/api/conversations', conversationsRouter);
 app.use('/api/calendar', calendarRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/notes', notesRouter);
+app.use('/api/settings', settingsRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {

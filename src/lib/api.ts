@@ -214,6 +214,23 @@ class ApiClient {
     await this.request(`/api/users/${id}`, { method: 'DELETE' });
   }
 
+  // ── Settings ──────────────────────────────────────────────
+
+  async getSettings(): Promise<Record<string, unknown>> {
+    return this.request('/api/settings');
+  }
+
+  async updateSetting(key: string, value: unknown): Promise<void> {
+    await this.request(`/api/settings/${key}`, {
+      method: 'PUT',
+      body: JSON.stringify({ value }),
+    });
+  }
+
+  async getAvailableCalendars(): Promise<{ id: string; name: string }[]> {
+    return this.request('/api/settings/calendars');
+  }
+
   // ── Conversations ────────────────────────────────────────
 
   async getConversations(tab = 'chat', limit = 5): Promise<Conversation[]> {

@@ -16,7 +16,26 @@ export async function syncCalendar(userId: number): Promise<unknown[]> {
   // Fetch next 14 days of events via direct API
   const from = new Date().toISOString();
   const to = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
-  const events = await openclawClient.getCalendarEvents(from, to);
+  const allEvents = await openclawClient.getCalendarEvents(from, to);
+
+  // Filter by user's calendar preferences (if set)
+  const prefRow = db.prepare("SELECT value FROM user_settings WHERE user_id = ? AND key = 'enabled_calendars'")
+    .get(userId) as { value: string } | undefined;
+
+  let events = allEvents;
+  if (prefRow) {
+    try {
+      const enabled = JSON.parse(prefRow.value) as string[];
+      if (enabled.length > 0) {
+        events = allEvents.filter((e) =>
+          enabled.some((name) =>
+            e.calendar.toLowerCase().includes(name.toLowerCase()) ||
+            (e.calendarId && enabled.includes(e.calendarId))
+          ),
+        );
+      }
+    } catch { /* use all events if pref parsing fails */ }
+  }
 
   // Clear existing events for this user and re-insert
   const now = new Date().toISOString();

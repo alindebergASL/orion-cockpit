@@ -9,16 +9,15 @@ import {
   WifiOff,
   LogOut,
   Settings,
-  Sun,
-  Moon,
+  Users,
   Menu,
   X,
 } from 'lucide-react';
 import type { TabId } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../lib/api';
 import { UserManagement } from './admin/UserManagement';
+import { SettingsModal } from './Settings';
 
 const tabs: { id: TabId; label: string; icon: React.FC<{ className?: string }> }[] = [
   { id: 'home', label: 'Home', icon: Home },
@@ -36,9 +35,9 @@ interface LayoutProps {
 
 export function Layout({ activeTab, onTabChange, children }: LayoutProps) {
   const { user, logout } = useAuth();
-  const { theme, toggle: toggleTheme } = useTheme();
   const [connected, setConnected] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval>>(null);
 
@@ -101,23 +100,23 @@ export function Layout({ activeTab, onTabChange, children }: LayoutProps) {
 
         {/* Bottom section */}
         <div className="flex flex-col items-center gap-3">
-          {/* Theme toggle */}
+          {/* Settings (all users) */}
           <button
-            onClick={toggleTheme}
+            onClick={() => setSettingsOpen(true)}
             className="rounded-lg p-2 text-th-text-secondary hover:bg-th-elevated hover:text-th-text"
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            title="Settings"
           >
-            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            <Settings className="h-4 w-4" />
           </button>
 
-          {/* Admin button */}
+          {/* Admin: user management */}
           {user?.role === 'admin' && (
             <button
               onClick={() => setAdminOpen(true)}
               className="rounded-lg p-2 text-th-text-secondary hover:bg-th-elevated hover:text-th-text"
               title="User Management"
             >
-              <Settings className="h-4 w-4" />
+              <Users className="h-4 w-4" />
             </button>
           )}
 
@@ -157,6 +156,9 @@ export function Layout({ activeTab, onTabChange, children }: LayoutProps) {
 
       {/* Main content */}
       <main className="flex-1 overflow-hidden pt-10 md:pt-0">{children}</main>
+
+      {/* Settings modal */}
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
 
       {/* Admin panel overlay */}
       {adminOpen && <UserManagement onClose={() => setAdminOpen(false)} />}
