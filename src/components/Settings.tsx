@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { X, Calendar, RefreshCw } from 'lucide-react';
+import { X, Calendar, ListChecks, RefreshCw } from 'lucide-react';
 import { api } from '../lib/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { showToast } from './Toast';
@@ -8,63 +8,67 @@ interface Props {
   onClose: () => void;
 }
 
-interface CalendarInfo {
+interface ListInfo {
   id: string;
   name: string;
 }
 
 export function SettingsModal({ onClose }: Props) {
   const { theme, toggle: toggleTheme } = useTheme();
-  const [calendars, setCalendars] = useState<CalendarInfo[]>([]);
+  const [calendars, setCalendars] = useState<ListInfo[]>([]);
   const [enabledCalendars, setEnabledCalendars] = useState<string[]>([]);
-  const [loadingCalendars, setLoadingCalendars] = useState(true);
+  const [taskLists, setTaskLists] = useState<ListInfo[]>([]);
+  const [enabledTaskLists, setEnabledTaskLists] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Load available calendars and user preferences
   useEffect(() => {
     (async () => {
       try {
-        const [cals, settings] = await Promise.all([
-          api.getAvailableCalendars(),
+        const [cals, lists, settings] = await Promise.all([
+          api.getAvailableCalendars().catch(() => []),
+          api.getAvailableTaskLists().catch(() => []),
           api.getSettings(),
         ]);
+
         setCalendars(cals);
-        const enabled = settings.enabled_calendars as string[] | undefined;
-        if (enabled && enabled.length > 0) {
-          setEnabledCalendars(enabled);
-        } else {
-          // Default: all calendars enabled
-          setEnabledCalendars(cals.map((c) => c.id));
-        }
-      } catch {
-        // If calendar list fetch fails, show empty
-      } finally {
-        setLoadingCalendars(false);
-      }
+        setTaskLists(lists);
+
+        const enabledCals = settings.enabled_calendars as string[] | undefined;
+        setEnabledCalendars(enabledCals && enabledCals.length > 0 ? enabledCals : cals.map((c) => c.id));
+
+        const enabledLists = settings.enabled_task_lists as string[] | undefined;
+        setEnabledTaskLists(enabledLists && enabledLists.length > 0 ? enabledLists : lists.map((l) => l.name));
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
     })();
   }, []);
 
-  const handleToggleCalendar = useCallback((calId: string) => {
-    setEnabledCalendars((prev) =>
-      prev.includes(calId)
-        ? prev.filter((id) => id !== calId)
-        : [...prev, calId],
-    );
+  const toggleCalendar = useCallback((id: string) => {
+    setEnabledCalendars((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  }, []);
+
+  const toggleTaskList = useCallback((name: string) => {
+    setEnabledTaskLists((prev) => prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name]);
   }, []);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      await api.updateSetting('enabled_calendars', enabledCalendars);
+      await Promise.all([
+        api.updateSetting('enabled_calendars', enabledCalendars),
+        api.updateSetting('enabled_task_lists', enabledTaskLists),
+      ]);
       showToast('Settings saved', 'success');
-      // Trigger a re-sync with new preferences
+      // Trigger re-sync with new preferences
       api.syncCalendar().catch(() => {});
+      api.syncTasks().catch(() => {});
     } catch {
       showToast('Failed to save settings', 'error');
     } finally {
       setSaving(false);
     }
-  }, [enabledCalendars]);
+  }, [enabledCalendars, enabledTaskLists]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
@@ -80,7 +84,7 @@ export function SettingsModal({ onClose }: Props) {
           </button>
         </div>
 
-        <div className="max-h-[28rem] overflow-y-auto p-5 space-y-6">
+        <div className="max-h-[32rem] overflow-y-auto p-5 space-y-6">
           {/* Theme */}
           <section>
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Appearance</h3>
@@ -99,11 +103,11 @@ export function SettingsModal({ onClose }: Props) {
           <section>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Calendars</h3>
-              {loadingCalendars && <RefreshCw className="h-3 w-3 animate-spin text-slate-600" />}
+              {loading && <RefreshCw className="h-3 w-3 animate-spin text-slate-600" />}
             </div>
 
-            {!loadingCalendars && calendars.length === 0 && (
-              <p className="text-xs text-slate-600">No calendars found. Sync may not be connected.</p>
+            {!loading && calendars.length === 0 && (
+              <p className="text-xs text-slate-600">No calendars found.</p>
             )}
 
             <div className="space-y-1.5">
@@ -115,13 +119,15 @@ export function SettingsModal({ onClose }: Props) {
                   <input
                     type="checkbox"
                     checked={enabledCalendars.includes(cal.id)}
-                    onChange={() => handleToggleCalendar(cal.id)}
+                    onChange={() => toggleCalendar(cal.id)}
                     className="rounded border-slate-600 text-cyan-600 focus:ring-cyan-600"
                   />
                   <Calendar className="h-3.5 w-3.5 text-slate-500" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-slate-200 truncate">{cal.name}</p>
-                    <p className="text-[10px] text-slate-600 truncate">{cal.id}</p>
+                    {cal.id !== cal.name && (
+                      <p className="text-[10px] text-slate-600 truncate">{cal.id}</p>
+                    )}
                   </div>
                 </label>
               ))}
@@ -130,6 +136,44 @@ export function SettingsModal({ onClose }: Props) {
             {calendars.length > 0 && (
               <p className="mt-2 text-[11px] text-slate-600">
                 Only selected calendars will sync and appear in the calendar view.
+              </p>
+            )}
+          </section>
+
+          {/* Task Lists */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Task Lists</h3>
+              {loading && <RefreshCw className="h-3 w-3 animate-spin text-slate-600" />}
+            </div>
+
+            {!loading && taskLists.length === 0 && (
+              <p className="text-xs text-slate-600">No task lists found.</p>
+            )}
+
+            <div className="space-y-1.5">
+              {taskLists.map((list) => (
+                <label
+                  key={list.id || list.name}
+                  className="flex items-center gap-3 rounded-lg border border-slate-800 px-4 py-2.5 cursor-pointer hover:bg-slate-800/50"
+                >
+                  <input
+                    type="checkbox"
+                    checked={enabledTaskLists.includes(list.name)}
+                    onChange={() => toggleTaskList(list.name)}
+                    className="rounded border-slate-600 text-cyan-600 focus:ring-cyan-600"
+                  />
+                  <ListChecks className="h-3.5 w-3.5 text-slate-500" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-slate-200 truncate">{list.name}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            {taskLists.length > 0 && (
+              <p className="mt-2 text-[11px] text-slate-600">
+                Only selected task lists will sync and appear in the tasks view.
               </p>
             )}
           </section>

@@ -50,3 +50,14 @@ settingsRouter.get('/calendars', async (_req, res) => {
     res.status(502).json({ error: message });
   }
 });
+
+// Get available task lists from OpenClaw
+settingsRouter.get('/task-lists', async (_req, res) => {
+  try {
+    const lists = await openclawClient.getTaskLists();
+    res.json(lists);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to fetch task lists';
+    res.status(502).json({ error: message });
+  }
+});

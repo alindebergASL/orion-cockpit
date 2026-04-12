@@ -150,6 +150,15 @@ export class OpenClawClient {
     return res.json() as Promise<CalendarEventRaw>;
   }
 
+  /** Fetch available task lists. */
+  async getTaskLists(): Promise<{ id: string; name: string }[]> {
+    const res = await fetch(`${this.baseUrl}/api/tasks/lists`, {
+      headers: this.headers(),
+    });
+    if (!res.ok) throw new Error(`Task lists error ${res.status}: ${await res.text()}`);
+    return res.json() as Promise<{ id: string; name: string }[]>;
+  }
+
   /** Fetch tasks directly via remindctl. */
   async getTasks(list?: string): Promise<TaskRaw[]> {
     const url = list

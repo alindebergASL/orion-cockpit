@@ -231,6 +231,10 @@ class ApiClient {
     return this.request('/api/settings/calendars');
   }
 
+  async getAvailableTaskLists(): Promise<{ id: string; name: string }[]> {
+    return this.request('/api/settings/task-lists');
+  }
+
   // ── Conversations ────────────────────────────────────────
 
   async getConversations(tab = 'chat', limit = 5): Promise<Conversation[]> {

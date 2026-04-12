@@ -76,7 +76,26 @@ export async function syncTasks(userId: number): Promise<unknown[]> {
 
   if (!user) throw new Error('User not found');
 
-  const tasks = await openclawClient.getTasks();
+  const allTasks = await openclawClient.getTasks();
+
+  // Filter by user's task list preferences (if set)
+  const taskPrefRow = db.prepare("SELECT value FROM user_settings WHERE user_id = ? AND key = 'enabled_task_lists'")
+    .get(userId) as { value: string } | undefined;
+
+  let tasks = allTasks;
+  if (taskPrefRow) {
+    try {
+      const enabled = JSON.parse(taskPrefRow.value) as string[];
+      if (enabled.length > 0) {
+        tasks = allTasks.filter((t) =>
+          t.listName && enabled.some((name) =>
+            t.listName!.toLowerCase() === name.toLowerCase() ||
+            enabled.includes(t.listName!)
+          ),
+        );
+      }
+    } catch { /* use all tasks if pref parsing fails */ }
+  }
 
   const now = new Date().toISOString();
   const deleteStmt = db.prepare('DELETE FROM tasks WHERE user_id = ?');
