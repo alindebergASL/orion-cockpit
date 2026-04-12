@@ -60,12 +60,28 @@ calendarRouter.post('/events', async (req, res) => {
     return;
   }
 
+  // Ensure timestamps have timezone info (Google API requires it)
+  const ensureTz = (ts: string): string => {
+    // Already has offset (e.g. -07:00 or Z)
+    if (/[+-]\d{2}:\d{2}$/.test(ts) || ts.endsWith('Z')) return ts;
+    // Add local timezone offset
+    const d = new Date(ts);
+    const offset = -d.getTimezoneOffset();
+    const sign = offset >= 0 ? '+' : '-';
+    const hh = String(Math.floor(Math.abs(offset) / 60)).padStart(2, '0');
+    const mm = String(Math.abs(offset) % 60).padStart(2, '0');
+    return `${ts}${sign}${hh}:${mm}`;
+  };
+
+  const tzStart = ensureTz(start);
+  const tzEnd = ensureTz(end);
+
   // Insert into SQLite immediately so it shows up in the UI
   const now = new Date().toISOString();
   getDb()
     .prepare(`INSERT INTO calendar_events (user_id, title, start, end, calendar, location, description, all_day, synced_at)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(userId, title, start, end, calendar || '', location || null, description || null, allDay ? 1 : 0, now);
+    .run(userId, title, tzStart, tzEnd, calendar || '', location || null, description || null, allDay ? 1 : 0, now);
 
   // Return immediately with updated events
   const rows = getDb()
@@ -83,7 +99,7 @@ calendarRouter.post('/events', async (req, res) => {
 
   // Create via direct API in the background (don't await)
   openclawClient.createCalendarEvent({
-    title, start, end,
+    title, start: tzStart, end: tzEnd,
     calendar: calendar || undefined,
     location: location || undefined,
     description: description || undefined,

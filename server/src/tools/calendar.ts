@@ -3,6 +3,16 @@ import { syncCalendar } from '../services/sync.js';
 import { getDb } from '../db.js';
 import { openclawClient } from '../services/openclaw.js';
 
+function ensureTimezone(ts: string): string {
+  if (/[+-]\d{2}:\d{2}$/.test(ts) || ts.endsWith('Z')) return ts;
+  const d = new Date(ts);
+  const offset = -d.getTimezoneOffset();
+  const sign = offset >= 0 ? '+' : '-';
+  const hh = String(Math.floor(Math.abs(offset) / 60)).padStart(2, '0');
+  const mm = String(Math.abs(offset) % 60).padStart(2, '0');
+  return `${ts}${sign}${hh}:${mm}`;
+}
+
 export const calendarTools: ToolDefinition[] = [
   {
     name: 'refresh_calendar',
@@ -62,8 +72,8 @@ export async function executeCalendarTool(
     case 'create_calendar_event': {
       const created = await openclawClient.createCalendarEvent({
         title: args.title as string,
-        start: args.start as string,
-        end: args.end as string,
+        start: ensureTimezone(args.start as string),
+        end: ensureTimezone(args.end as string),
         calendar: args.calendar as string | undefined,
         location: args.location as string | undefined,
         description: args.description as string | undefined,
