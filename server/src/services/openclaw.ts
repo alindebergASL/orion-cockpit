@@ -45,6 +45,7 @@ export class OpenClawClient {
       method: 'POST',
       headers: this.headers(),
       body: JSON.stringify({
+        model: 'default',
         input,
         stream: true,
         ...(opts.sessionKey && { session_key: opts.sessionKey }),
