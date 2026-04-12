@@ -3,6 +3,7 @@ import { authenticate } from '../middleware/auth.js';
 import { config } from '../config.js';
 import { getDb } from '../db.js';
 import { getProvider } from '../services/llm/factory.js';
+import { openclawClient } from '../services/openclaw.js';
 import { allTools, executeTool } from '../tools/index.js';
 import type { LLMMessage, LLMContentBlock, StreamChunk } from '../services/llm/types.js';
 
@@ -138,9 +139,48 @@ chatRouter.post('/', async (req, res) => {
   sendSSE(JSON.stringify({ type: 'conversation', conversationId: convId }));
 
   try {
-    const provider = getProvider('chat', config.llm.tiers);
     const systemPrompt = buildSystemPrompt(user);
     const history = loadConversationHistory(convId);
+
+    // Determine chat mode: per-user override or global config
+    const userModePref = getDb()
+      .prepare("SELECT value FROM user_settings WHERE user_id = ? AND key = 'chat_mode'")
+      .get(user.id) as { value: string } | undefined;
+    const chatMode = userModePref?.value || config.chatMode;
+
+    if (chatMode === 'openclaw') {
+      // === OPENCLAW DIRECT MODE ===
+      // Route chat through OpenClaw's /v1/responses API
+      saveChatMessage(user.id, tab, convId, 'user', message);
+      updateConversationTitle(convId, message);
+      touchConversation(convId);
+
+      const openclawMessages = [
+        { role: 'system', content: systemPrompt },
+        ...history.map((m) => ({ role: m.role, content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) })),
+        { role: 'user', content: message },
+      ];
+
+      let fullResponse = '';
+      await openclawClient.streamChat(
+        { messages: openclawMessages },
+        (chunk) => {
+          fullResponse += chunk;
+          sendSSE(JSON.stringify({ type: 'text', content: chunk }));
+        },
+      );
+
+      if (fullResponse) {
+        saveChatMessage(user.id, tab, convId, 'assistant', fullResponse);
+      }
+
+      sendSSE('[DONE]');
+      res.end();
+      return;
+    }
+
+    // === LLM MODE (OpenRouter/Anthropic) ===
+    const provider = getProvider('chat', config.llm.tiers);
 
     // Save user message
     saveChatMessage(user.id, tab, convId, 'user', message);

@@ -3,6 +3,7 @@ import type { TabId } from './types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastContainer } from './components/Toast';
+import { trackActivity } from './lib/activity';
 import { LoginPage } from './components/auth/LoginPage';
 import { Layout } from './components/Layout';
 import { HomeTab } from './components/tabs/HomeTab';
@@ -50,8 +51,13 @@ function Dashboard() {
     return () => window.removeEventListener('orion-navigate', handler);
   }, []);
 
+  const handleTabChange = (tab: TabId) => {
+    setActiveTab(tab);
+    trackActivity('tab_viewed', { tab });
+  };
+
   return (
-    <Layout activeTab={activeTab} onTabChange={setActiveTab}>
+    <Layout activeTab={activeTab} onTabChange={handleTabChange}>
       {tabEntries.map(([id, Component]) => (
         <div key={id} className={id === activeTab ? 'h-full' : 'hidden'}>
           <Component />

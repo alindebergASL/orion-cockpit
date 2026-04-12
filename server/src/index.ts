@@ -13,6 +13,11 @@ import { tasksRouter } from './routes/tasks.js';
 import { notesRouter } from './routes/notes.js';
 import { conversationsRouter } from './routes/conversations.js';
 import { settingsRouter } from './routes/settings.js';
+import { insightsRouter } from './routes/insights.js';
+import { activityRouter } from './routes/activity.js';
+import { runAgentLoop, pushActivityDigest } from './services/agent.js';
+import { addClient } from './services/sse.js';
+import { authenticate } from './middleware/auth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -30,6 +35,25 @@ app.use('/api/calendar', calendarRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/notes', notesRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/insights', insightsRouter);
+app.use('/api/activity', activityRouter);
+
+// SSE notification stream
+app.get('/api/notifications/stream', authenticate, (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  addClient(req.user!.id, res);
+
+  // Heartbeat every 30s
+  const heartbeat = setInterval(() => {
+    res.write(':heartbeat\n\n');
+  }, 30_000);
+
+  res.on('close', () => clearInterval(heartbeat));
+});
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -111,9 +135,11 @@ app.get('*', (_req, res) => {
 // Initialize DB and start
 initDb();
 
-// Auto-sync calendar and tasks for all users every 15 minutes
-const SYNC_INTERVAL = 15 * 60 * 1000;
-const SOUL_SYNC_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
+// Scheduling intervals
+const SYNC_INTERVAL = 15 * 60 * 1000;        // 15 min: calendar/tasks sync
+const SOUL_SYNC_INTERVAL = 24 * 60 * 60 * 1000; // 24h: soul.md sync
+const AGENT_INTERVAL = 30 * 60 * 1000;       // 30 min: background agent insights
+const DIGEST_INTERVAL = 24 * 60 * 60 * 1000; // 24h: activity digest push to OpenClaw
 
 function autoSync() {
   try {
@@ -148,4 +174,20 @@ app.listen(config.port, () => {
   setInterval(() => {
     syncSoulMd().catch((err) => console.error('Soul.md sync failed:', err.message));
   }, SOUL_SYNC_INTERVAL);
+
+  // Background agent: generate insights every 30 min (first run after 2 min)
+  setTimeout(() => {
+    runAgentLoop().catch((err) => console.error('Agent loop failed:', err.message));
+  }, 2 * 60 * 1000);
+  setInterval(() => {
+    runAgentLoop().catch((err) => console.error('Agent loop failed:', err.message));
+  }, AGENT_INTERVAL);
+
+  // Push activity digest to OpenClaw daily (first run after 1 hour)
+  setTimeout(() => {
+    pushActivityDigest().catch((err) => console.error('Activity digest failed:', err.message));
+  }, 60 * 60 * 1000);
+  setInterval(() => {
+    pushActivityDigest().catch((err) => console.error('Activity digest failed:', err.message));
+  }, DIGEST_INTERVAL);
 });

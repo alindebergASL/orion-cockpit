@@ -1,4 +1,4 @@
-import type { User, CalendarEvent, Task, Note, Conversation } from '../types';
+import type { User, CalendarEvent, Task, Note, Conversation, Insight } from '../types';
 
 class ApiClient {
   private token: string | null = null;
@@ -258,6 +258,37 @@ class ApiClient {
 
   async deleteConversation(id: number): Promise<void> {
     await this.request(`/api/conversations/${id}`, { method: 'DELETE' });
+  }
+
+  // ── Insights ──────────────────────────────────────────────
+
+  async getInsights(): Promise<{ insights: Insight[]; unreadCount: number }> {
+    return this.request('/api/insights');
+  }
+
+  async markInsightRead(id: number): Promise<void> {
+    await this.request(`/api/insights/${id}/read`, { method: 'POST' });
+  }
+
+  async markAllInsightsRead(): Promise<void> {
+    await this.request('/api/insights/read-all', { method: 'POST' });
+  }
+
+  async actOnInsight(id: number): Promise<void> {
+    await this.request(`/api/insights/${id}/act`, { method: 'POST' });
+  }
+
+  async dismissInsight(id: number): Promise<void> {
+    await this.request(`/api/insights/${id}`, { method: 'DELETE' });
+  }
+
+  // ── Activity ─────────────────────────────────────────────
+
+  async logActivity(action: string, details?: Record<string, unknown>): Promise<void> {
+    await this.request('/api/activity', {
+      method: 'POST',
+      body: JSON.stringify({ action, details }),
+    });
   }
 
   // ── Weather ───────────────────────────────────────────────

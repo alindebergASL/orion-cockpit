@@ -8,9 +8,12 @@ export interface TierConfig {
   headers?: Record<string, string>;
 }
 
+export type ChatMode = 'openclaw' | 'llm';
+
 export interface AppConfig {
   port: number;
   jwtSecret: string;
+  chatMode: ChatMode;
   openclaw: {
     url: string;
     token: string;
@@ -66,6 +69,7 @@ function loadConfig(): AppConfig {
   return {
     port: parseInt(process.env.PORT || '3001', 10),
     jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me',
+    chatMode: (process.env.CHAT_MODE as ChatMode) || 'openclaw',
     openclaw: {
       url: (process.env.OPENCLAW_URL || 'http://localhost:18789').replace(/\/+$/, ''),
       token: process.env.OPENCLAW_TOKEN || '',

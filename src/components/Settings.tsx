@@ -20,6 +20,7 @@ export function SettingsModal({ onClose }: Props) {
   const [taskLists, setTaskLists] = useState<ListInfo[]>([]);
   const [enabledTaskLists, setEnabledTaskLists] = useState<string[]>([]);
   const [weatherLocation, setWeatherLocation] = useState('');
+  const [chatMode, setChatMode] = useState('openclaw');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -42,6 +43,7 @@ export function SettingsModal({ onClose }: Props) {
         setEnabledTaskLists(enabledLists && enabledLists.length > 0 ? enabledLists : lists.map((l) => l.name));
 
         setWeatherLocation((settings.weather_location as string) || '');
+        setChatMode((settings.chat_mode as string) || 'openclaw');
       } catch { /* ignore */ }
       finally { setLoading(false); }
     })();
@@ -61,6 +63,7 @@ export function SettingsModal({ onClose }: Props) {
       await Promise.all([
         api.updateSetting('enabled_calendars', enabledCalendars),
         api.updateSetting('enabled_task_lists', enabledTaskLists),
+        api.updateSetting('chat_mode', chatMode),
         weatherLocation ? api.updateSetting('weather_location', weatherLocation) : Promise.resolve(),
       ]);
       showToast('Settings saved', 'success');
@@ -100,6 +103,39 @@ export function SettingsModal({ onClose }: Props) {
               >
                 {theme === 'dark' ? 'Dark' : 'Light'}
               </button>
+            </div>
+          </section>
+
+          {/* Chat Brain */}
+          <section>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-th-text-secondary">Chat Engine</h3>
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-3 rounded-lg border border-th-border px-4 py-2.5 cursor-pointer hover:bg-th-elevated/50">
+                <input
+                  type="radio"
+                  name="chatMode"
+                  checked={chatMode === 'openclaw'}
+                  onChange={() => setChatMode('openclaw')}
+                  className="text-cyan-600 focus:ring-cyan-600"
+                />
+                <div>
+                  <p className="text-sm text-th-text">OpenClaw (Recommended)</p>
+                  <p className="text-[10px] text-th-text-muted">Direct agent with full tool access, memory, and personality</p>
+                </div>
+              </label>
+              <label className="flex items-center gap-3 rounded-lg border border-th-border px-4 py-2.5 cursor-pointer hover:bg-th-elevated/50">
+                <input
+                  type="radio"
+                  name="chatMode"
+                  checked={chatMode === 'llm'}
+                  onChange={() => setChatMode('llm')}
+                  className="text-cyan-600 focus:ring-cyan-600"
+                />
+                <div>
+                  <p className="text-sm text-th-text">LLM (Fallback)</p>
+                  <p className="text-[10px] text-th-text-muted">OpenRouter/Anthropic with limited tools. Faster but less capable.</p>
+                </div>
+              </label>
             </div>
           </section>
 

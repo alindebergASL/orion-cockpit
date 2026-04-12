@@ -8,6 +8,7 @@ import {
   Wifi,
   WifiOff,
   LogOut,
+  Bell,
   Settings,
   Users,
   Menu,
@@ -18,6 +19,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { api } from '../lib/api';
 import { UserManagement } from './admin/UserManagement';
 import { SettingsModal } from './Settings';
+import { NotificationPanel } from './NotificationPanel';
+import { useNotifications } from '../hooks/useNotifications';
 
 const tabs: { id: TabId; label: string; icon: React.FC<{ className?: string }> }[] = [
   { id: 'home', label: 'Home', icon: Home },
@@ -35,8 +38,10 @@ interface LayoutProps {
 
 export function Layout({ activeTab, onTabChange, children }: LayoutProps) {
   const { user, logout } = useAuth();
+  const notifications = useNotifications();
   const [connected, setConnected] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval>>(null);
@@ -103,6 +108,20 @@ export function Layout({ activeTab, onTabChange, children }: LayoutProps) {
 
         {/* Bottom section */}
         <div className="flex flex-col items-center gap-3">
+          {/* Notifications */}
+          <button
+            onClick={() => setNotificationsOpen(true)}
+            className="relative rounded-lg p-2 text-th-text-secondary hover:bg-th-elevated hover:text-th-text"
+            title="Notifications"
+          >
+            <Bell className="h-4 w-4" />
+            {notifications.unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                {notifications.unreadCount > 9 ? '9+' : notifications.unreadCount}
+              </span>
+            )}
+          </button>
+
           {/* Settings (all users) */}
           <button
             onClick={() => setSettingsOpen(true)}
@@ -159,6 +178,19 @@ export function Layout({ activeTab, onTabChange, children }: LayoutProps) {
 
       {/* Main content */}
       <main className="flex-1 overflow-hidden pt-10 md:pt-0">{children}</main>
+
+      {/* Notifications panel */}
+      {notificationsOpen && (
+        <NotificationPanel
+          insights={notifications.insights}
+          onClose={() => setNotificationsOpen(false)}
+          onMarkRead={notifications.markRead}
+          onMarkAllRead={notifications.markAllRead}
+          onDismiss={notifications.dismiss}
+          onActOn={notifications.actOn}
+          onNavigate={(tab) => { onTabChange(tab as TabId); setNotificationsOpen(false); }}
+        />
+      )}
 
       {/* Settings modal */}
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}

@@ -11,6 +11,7 @@ import {
 import type { Task } from '../../types';
 import { api } from '../../lib/api';
 import { showToast } from '../Toast';
+import { trackActivity } from '../../lib/activity';
 
 const statusIcons: Record<Task['status'], React.FC<{ className?: string }>> = {
   open: Circle,
@@ -109,13 +110,14 @@ export function TasksTab() {
     );
     try {
       await api.updateTaskStatus(Number(taskId), nextStatus);
+      const task = tasks.find((t) => t.id === taskId);
+      trackActivity(nextStatus === 'completed' ? 'task_completed' : 'task_reopened', { taskId, title: task?.title });
     } catch {
-      // Revert on failure
       setTasks((prev) =>
         prev.map((t) => (t.id === taskId ? { ...t, status: currentStatus as Task['status'] } : t)),
       );
     }
-  }, []);
+  }, [tasks]);
 
   const filtered = filter === 'all' ? tasks : tasks.filter((t) => t.status === filter);
 

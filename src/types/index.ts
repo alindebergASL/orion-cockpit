@@ -52,6 +52,20 @@ export interface User {
   role: 'admin' | 'user';
 }
 
+export interface Insight {
+  id: number;
+  type: string;
+  title: string;
+  body: string;
+  actionType?: string | null;
+  actionData?: Record<string, unknown> | null;
+  priority: string;
+  read: boolean;
+  actedOn: boolean;
+  createdAt: string;
+  expiresAt?: string | null;
+}
+
 export interface Conversation {
   id: number;
   title: string;
