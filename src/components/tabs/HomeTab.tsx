@@ -125,34 +125,57 @@ export function HomeTab() {
     );
   }
 
-  // Build briefing text — warm, conversational OpenClaw tone
+  // Build briefing text — warm, personal assistant tone
   const briefingParts: string[] = [];
   if (weather) {
-    const temp = weather.current.tempF;
+    const temp = Number(weather.current.tempF);
     const desc = weather.current.description.toLowerCase();
-    briefingParts.push(`It's ${temp}\u00B0 out right now \u2014 ${desc} skies over Redwood City.`);
+    if (temp >= 80) {
+      briefingParts.push(`It's a warm ${temp}\u00B0 with ${desc} skies in Redwood City \u2014 stay hydrated out there!`);
+    } else if (temp >= 65) {
+      briefingParts.push(`Beautiful day in Redwood City \u2014 ${temp}\u00B0 and ${desc}. Great weather to be outside.`);
+    } else if (temp >= 50) {
+      briefingParts.push(`It's ${temp}\u00B0 and ${desc} in Redwood City. You might want a light layer if you're heading out.`);
+    } else {
+      briefingParts.push(`A chilly ${temp}\u00B0 in Redwood City with ${desc} skies. Bundle up if you're going out!`);
+    }
   }
   if (todayEvents.length === 0) {
-    briefingParts.push('Your calendar is wide open today \u2014 enjoy the breathing room!');
+    briefingParts.push('Your calendar is wide open today \u2014 a perfect day to focus on what matters most to you.');
   } else if (todayEvents.length === 1) {
     const next = todayEvents[0];
     if (next && !next.allDay) {
-      briefingParts.push(`Just one thing on the calendar today: ${next.title} at ${formatEventTime(next)}.`);
+      briefingParts.push(`Just one thing on the calendar: ${next.title} at ${formatEventTime(next)}. Otherwise, the day is yours.`);
     } else {
-      briefingParts.push('You have one event on the books today.');
+      briefingParts.push('You have one all-day event today. Plenty of room to maneuver around it.');
     }
-  } else {
-    briefingParts.push(`You've got ${todayEvents.length} events lined up today.`);
+  } else if (todayEvents.length <= 3) {
+    briefingParts.push(`You've got ${todayEvents.length} events today \u2014 a manageable day.`);
     const next = todayEvents[0];
     if (next && !next.allDay) {
       briefingParts.push(`First up is ${next.title} at ${formatEventTime(next)}.`);
     }
-  }
-  if (activeTasks.length > 0) {
-    briefingParts.push(`${activeTasks.length} task${activeTasks.length > 1 ? 's' : ''} on your plate when you're ready.`);
   } else {
-    briefingParts.push('All tasks knocked out \u2014 well done!');
+    briefingParts.push(`Busy day ahead with ${todayEvents.length} events on the calendar.`);
+    const next = todayEvents[0];
+    if (next && !next.allDay) {
+      briefingParts.push(`Starting with ${next.title} at ${formatEventTime(next)}.`);
+    }
+    briefingParts.push('Pace yourself!');
   }
+  if (activeTasks.length === 0) {
+    briefingParts.push('All tasks knocked out \u2014 well done! Enjoy the clean slate.');
+  } else if (activeTasks.length <= 3) {
+    briefingParts.push(`${activeTasks.length} task${activeTasks.length > 1 ? 's' : ''} left \u2014 you're almost there.`);
+  } else {
+    briefingParts.push(`${activeTasks.length} tasks on your plate. Take them one at a time.`);
+  }
+
+  // Add a daily touch
+  const dayOfWeek = now.getDay();
+  if (dayOfWeek === 1) briefingParts.push('Happy Monday \u2014 let\'s make it a great week!');
+  else if (dayOfWeek === 5) briefingParts.push('It\'s Friday \u2014 finish strong and enjoy the weekend!');
+  else if (dayOfWeek === 0 || dayOfWeek === 6) briefingParts.push('Enjoy your weekend!');
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">

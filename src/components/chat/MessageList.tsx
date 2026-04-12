@@ -28,10 +28,21 @@ export function MessageList({ messages, streaming }: Props) {
 
   if (messages.length === 0) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 text-slate-500">
-        <Bot className="h-12 w-12" />
-        <p className="text-lg">Start a conversation with OpenClaw</p>
-        <p className="text-sm text-slate-600">Your AI agent is ready.</p>
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 text-slate-500 px-6">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-600/20">
+          <Bot className="h-7 w-7 text-cyan-400" />
+        </div>
+        <div className="text-center">
+          <p className="text-lg font-medium text-slate-300">Hey! How can I help you today?</p>
+          <p className="mt-1.5 text-sm text-slate-600 max-w-md">
+            I can check your schedule, manage tasks, create calendar events, or just chat. What's on your mind?
+          </p>
+        </div>
+        <div className="flex flex-wrap justify-center gap-2 mt-2">
+          <span className="rounded-full border border-slate-800 px-3 py-1 text-xs text-slate-500">What's on my calendar today?</span>
+          <span className="rounded-full border border-slate-800 px-3 py-1 text-xs text-slate-500">Show my open tasks</span>
+          <span className="rounded-full border border-slate-800 px-3 py-1 text-xs text-slate-500">Create a reminder</span>
+        </div>
       </div>
     );
   }
