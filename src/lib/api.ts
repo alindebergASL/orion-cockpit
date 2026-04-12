@@ -260,6 +260,17 @@ class ApiClient {
     await this.request(`/api/conversations/${id}`, { method: 'DELETE' });
   }
 
+  // ── Weather ───────────────────────────────────────────────
+
+  async getWeather(): Promise<{
+    current: { tempF: string; description: string; humidity: string; feelsLikeF: string };
+    today: { maxTempF: string; minTempF: string; description?: string };
+    tomorrow: { maxTempF: string; minTempF: string; description?: string };
+    location: string;
+  }> {
+    return this.request('/api/weather');
+  }
+
   // ── Health ───────────────────────────────────────────────
 
   async ping(): Promise<boolean> {

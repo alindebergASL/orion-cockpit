@@ -36,6 +36,58 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Weather (cached for 30 minutes)
+let weatherCache: { data: unknown; fetchedAt: number } | null = null;
+const WEATHER_TTL = 30 * 60 * 1000;
+const WEATHER_LOCATION = 'Portland,OR';
+
+app.get('/api/weather', async (_req, res) => {
+  try {
+    if (weatherCache && Date.now() - weatherCache.fetchedAt < WEATHER_TTL) {
+      res.json(weatherCache.data);
+      return;
+    }
+
+    const wttr = await fetch(`https://wttr.in/${WEATHER_LOCATION}?format=j1`);
+    if (!wttr.ok) throw new Error('Weather fetch failed');
+    const raw = await wttr.json() as Record<string, unknown>;
+
+    const current = (raw.current_condition as Record<string, unknown>[])?.[0];
+    const todayForecast = (raw.weather as Record<string, unknown>[])?.[0];
+    const tomorrowForecast = (raw.weather as Record<string, unknown>[])?.[1];
+
+    const data = {
+      current: {
+        tempF: (current as Record<string, unknown>)?.temp_F,
+        tempC: (current as Record<string, unknown>)?.temp_C,
+        description: ((current as Record<string, unknown>)?.weatherDesc as Record<string, unknown>[])?.[0]?.value,
+        humidity: (current as Record<string, unknown>)?.humidity,
+        feelsLikeF: (current as Record<string, unknown>)?.FeelsLikeF,
+      },
+      today: {
+        maxTempF: (todayForecast as Record<string, unknown>)?.maxtempF,
+        minTempF: (todayForecast as Record<string, unknown>)?.mintempF,
+        description: ((todayForecast as Record<string, unknown>)?.hourly as Record<string, unknown>[])?.[4]?.weatherDesc
+          ? (((todayForecast as Record<string, unknown>)?.hourly as Record<string, unknown>[])?.[4]?.weatherDesc as Record<string, unknown>[])?.[0]?.value
+          : undefined,
+      },
+      tomorrow: {
+        maxTempF: (tomorrowForecast as Record<string, unknown>)?.maxtempF,
+        minTempF: (tomorrowForecast as Record<string, unknown>)?.mintempF,
+        description: ((tomorrowForecast as Record<string, unknown>)?.hourly as Record<string, unknown>[])?.[4]?.weatherDesc
+          ? (((tomorrowForecast as Record<string, unknown>)?.hourly as Record<string, unknown>[])?.[4]?.weatherDesc as Record<string, unknown>[])?.[0]?.value
+          : undefined,
+      },
+      location: WEATHER_LOCATION,
+    };
+
+    weatherCache = { data, fetchedAt: Date.now() };
+    res.json(data);
+  } catch {
+    res.status(502).json({ error: 'Weather unavailable' });
+  }
+});
+
 // Serve frontend in production
 const distPath = path.resolve(__dirname, '../../dist');
 app.use(express.static(distPath));

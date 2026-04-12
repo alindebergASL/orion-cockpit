@@ -1,5 +1,17 @@
-import { useEffect, useState } from 'react';
-import { CalendarDays, ListChecks, Clock, Sun, Sunrise, Moon } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  CalendarDays,
+  ListChecks,
+  Clock,
+  Sun,
+  Sunrise,
+  Moon,
+  CloudSun,
+  Circle,
+  CheckCircle2,
+  X,
+  Thermometer,
+} from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../lib/api';
 import type { CalendarEvent, Task } from '../../types';
@@ -40,26 +52,50 @@ function dayLabel(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
+interface WeatherData {
+  current: { tempF: string; description: string; humidity: string; feelsLikeF: string };
+  today: { maxTempF: string; minTempF: string; description?: string };
+  tomorrow: { maxTempF: string; minTempF: string; description?: string };
+  location: string;
+}
+
 export function HomeTab() {
   const { user } = useAuth();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
   useEffect(() => {
     Promise.all([
       api.getCalendarEvents().catch(() => ({ events: [], syncedAt: null })),
       api.getTasks().catch(() => ({ tasks: [], syncedAt: null })),
-    ]).then(([calData, taskData]) => {
+      api.getWeather().catch(() => null),
+    ]).then(([calData, taskData, weatherData]) => {
       setEvents(calData.events);
       setTasks(taskData.tasks);
+      setWeather(weatherData);
     }).finally(() => setLoading(false));
+  }, []);
+
+  const handleToggleTask = useCallback(async (taskId: number | string, currentStatus: string) => {
+    const nextStatus = currentStatus === 'completed' ? 'open' : 'completed';
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status: nextStatus as Task['status'] } : t)),
+    );
+    try {
+      await api.updateTaskStatus(Number(taskId), nextStatus);
+    } catch {
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, status: currentStatus as Task['status'] } : t)),
+      );
+    }
   }, []);
 
   const greeting = getGreeting();
   const GreetingIcon = greeting.icon;
 
-  // Upcoming events (today and next 3 days)
   const now = new Date();
   const threeDaysOut = new Date();
   threeDaysOut.setDate(threeDaysOut.getDate() + 3);
@@ -69,7 +105,6 @@ export function HomeTab() {
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
     .slice(0, 6);
 
-  // Open/in-progress tasks, sorted by due date
   const activeTasks = tasks
     .filter((t) => t.status !== 'completed')
     .sort((a, b) => {
@@ -80,6 +115,7 @@ export function HomeTab() {
     .slice(0, 5);
 
   const todayStr = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+  const todayEvents = upcomingEvents.filter((e) => isToday(e.start));
 
   if (loading) {
     return (
@@ -87,6 +123,26 @@ export function HomeTab() {
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-700 border-t-cyan-400" />
       </div>
     );
+  }
+
+  // Build briefing text
+  const briefingParts: string[] = [];
+  if (weather) {
+    briefingParts.push(`It's currently ${weather.current.tempF}\u00B0F and ${weather.current.description.toLowerCase()} in ${weather.location.replace(',', ', ')}.`);
+  }
+  if (todayEvents.length === 0) {
+    briefingParts.push('Your calendar is clear today.');
+  } else {
+    briefingParts.push(`You have ${todayEvents.length} event${todayEvents.length > 1 ? 's' : ''} today.`);
+    const next = todayEvents[0];
+    if (next && !next.allDay) {
+      briefingParts.push(`Next up: ${next.title} at ${formatEventTime(next)}.`);
+    }
+  }
+  if (activeTasks.length > 0) {
+    briefingParts.push(`${activeTasks.length} open task${activeTasks.length > 1 ? 's' : ''} to tackle.`);
+  } else {
+    briefingParts.push('All tasks complete \u2014 nice work!');
   }
 
   return (
@@ -102,31 +158,50 @@ export function HomeTab() {
           </div>
           <p className="text-sm text-th-text-muted ml-10 mb-3">{todayStr}</p>
 
-          {/* Morning briefing */}
-          <div className="ml-10 rounded-lg border border-th-border bg-th-surface px-4 py-3 text-sm text-th-text-secondary">
-            {(() => {
-              const todayEvents = upcomingEvents.filter((e) => isToday(e.start));
-              const parts: string[] = [];
-              if (todayEvents.length === 0) {
-                parts.push('No events scheduled for today.');
-              } else {
-                parts.push(`You have ${todayEvents.length} event${todayEvents.length > 1 ? 's' : ''} today.`);
-                const next = todayEvents[0];
-                if (next && !next.allDay) {
-                  parts.push(`Next up: ${next.title} at ${formatEventTime(next)}.`);
-                }
-              }
-              if (activeTasks.length > 0) {
-                parts.push(`${activeTasks.length} open task${activeTasks.length > 1 ? 's' : ''} remaining.`);
-              } else {
-                parts.push('All tasks complete!');
-              }
-              return parts.join(' ');
-            })()}
+          <div className="ml-10 rounded-lg border border-th-border bg-th-surface px-4 py-3 text-sm text-th-text-secondary leading-relaxed">
+            {briefingParts.join(' ')}
           </div>
         </div>
 
         <div className="grid gap-6">
+          {/* Weather */}
+          {weather && (
+            <section>
+              <div className="flex items-center gap-2 mb-3">
+                <CloudSun className="h-4 w-4 text-cyan-400" />
+                <h2 className="text-sm font-semibold text-th-text-secondary">Weather</h2>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {/* Current */}
+                <div className="rounded-lg border border-th-border bg-th-surface px-4 py-3 text-center">
+                  <p className="text-[11px] text-th-text-muted mb-1">Now</p>
+                  <p className="text-2xl font-semibold text-th-text">{weather.current.tempF}&deg;</p>
+                  <p className="text-xs text-th-text-secondary mt-1">{weather.current.description}</p>
+                  <p className="text-[10px] text-th-text-muted mt-1 flex items-center justify-center gap-1">
+                    <Thermometer className="h-3 w-3" />
+                    Feels {weather.current.feelsLikeF}&deg;
+                  </p>
+                </div>
+                {/* Today */}
+                <div className="rounded-lg border border-th-border bg-th-surface px-4 py-3 text-center">
+                  <p className="text-[11px] text-th-text-muted mb-1">Today</p>
+                  <p className="text-lg font-semibold text-th-text">{weather.today.maxTempF}&deg; <span className="text-th-text-muted font-normal">/ {weather.today.minTempF}&deg;</span></p>
+                  {weather.today.description && (
+                    <p className="text-xs text-th-text-secondary mt-1">{weather.today.description}</p>
+                  )}
+                </div>
+                {/* Tomorrow */}
+                <div className="rounded-lg border border-th-border bg-th-surface px-4 py-3 text-center">
+                  <p className="text-[11px] text-th-text-muted mb-1">Tomorrow</p>
+                  <p className="text-lg font-semibold text-th-text">{weather.tomorrow.maxTempF}&deg; <span className="text-th-text-muted font-normal">/ {weather.tomorrow.minTempF}&deg;</span></p>
+                  {weather.tomorrow.description && (
+                    <p className="text-xs text-th-text-secondary mt-1">{weather.tomorrow.description}</p>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Upcoming Events */}
           <section>
             <div className="flex items-center gap-2 mb-3">
@@ -150,7 +225,10 @@ export function HomeTab() {
                           {dayLabel(event.start)}
                         </p>
                       )}
-                      <div className="flex items-center gap-3 rounded-lg border border-th-border bg-th-surface px-4 py-2.5">
+                      <button
+                        onClick={() => setSelectedEvent(event)}
+                        className="flex w-full items-center gap-3 rounded-lg border border-th-border bg-th-surface px-4 py-2.5 text-left transition-colors hover:bg-th-elevated"
+                      >
                         <span className="w-16 shrink-0 text-xs text-th-text-secondary">{formatEventTime(event)}</span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm text-th-text">{event.title}</p>
@@ -159,7 +237,7 @@ export function HomeTab() {
                           )}
                         </div>
                         <span className="shrink-0 text-[10px] text-th-text-muted">{event.calendar}</span>
-                      </div>
+                      </button>
                     </div>
                   );
                 })}
@@ -173,7 +251,7 @@ export function HomeTab() {
               <ListChecks className="h-4 w-4 text-cyan-400" />
               <h2 className="text-sm font-semibold text-th-text-secondary">Tasks</h2>
               {activeTasks.length > 0 && (
-                <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-400">
+                <span className="rounded-full bg-th-elevated px-2 py-0.5 text-[10px] text-th-text-secondary">
                   {activeTasks.length} open
                 </span>
               )}
@@ -190,12 +268,21 @@ export function HomeTab() {
                     key={task.id}
                     className="flex items-center gap-3 rounded-lg border border-th-border bg-th-surface px-4 py-2.5"
                   >
-                    <div className={`h-2 w-2 shrink-0 rounded-full ${
-                      task.priority === 'high' ? 'bg-red-500' :
-                      task.priority === 'medium' ? 'bg-amber-500' : 'bg-slate-600'
-                    }`} />
+                    <button
+                      onClick={() => handleToggleTask(task.id, task.status)}
+                      className="shrink-0 text-slate-500 hover:text-cyan-400 transition-colors"
+                      title="Mark complete"
+                    >
+                      {task.status === 'completed' ? (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                      ) : (
+                        <Circle className="h-4 w-4" />
+                      )}
+                    </button>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-th-text">{task.title}</p>
+                      <p className={`truncate text-sm ${task.status === 'completed' ? 'text-th-text-muted line-through' : 'text-th-text'}`}>
+                        {task.title}
+                      </p>
                     </div>
                     {task.dueDate && (
                       <span className="flex shrink-0 items-center gap-1 text-[11px] text-th-text-muted">
@@ -203,11 +290,68 @@ export function HomeTab() {
                         {dayLabel(task.dueDate)}
                       </span>
                     )}
+                    {task.priority && (
+                      <div className={`h-2 w-2 shrink-0 rounded-full ${
+                        task.priority === 'high' ? 'bg-red-500' :
+                        task.priority === 'medium' ? 'bg-amber-500' : 'bg-slate-600'
+                      }`} />
+                    )}
                   </div>
                 ))}
               </div>
             )}
           </section>
+        </div>
+      </div>
+
+      {/* Event detail popup */}
+      {selectedEvent && (
+        <EventDetail event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+      )}
+    </div>
+  );
+}
+
+function EventDetail({ event, onClose }: { event: CalendarEvent; onClose: () => void }) {
+  const start = new Date(event.start);
+  const end = new Date(event.end);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div
+        className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-start justify-between">
+          <div>
+            {event.calendar && (
+              <div className="mb-1 text-xs text-cyan-400">{event.calendar}</div>
+            )}
+            <h3 className="text-lg font-semibold text-slate-100">{event.title}</h3>
+          </div>
+          <button onClick={onClose} className="rounded p-1 text-slate-500 hover:text-slate-300">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-2 text-sm text-slate-400">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4" />
+            {event.allDay
+              ? start.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })
+              : `${start.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} - ${end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`}
+          </div>
+
+          {event.location && (
+            <div className="flex items-center gap-2">
+              <span className="text-slate-600">Location:</span>
+              {event.location}
+            </div>
+          )}
+
+          {event.description && (
+            <p className="mt-3 whitespace-pre-wrap text-slate-400">{event.description}</p>
+          )}
         </div>
       </div>
     </div>
