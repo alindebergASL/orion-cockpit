@@ -97,20 +97,20 @@ tasksRouter.put('/:id/status', async (req, res) => {
     return;
   }
 
-  // Get the task details for OpenClaw
+  // Look up by SQLite id OR external_id (frontend may send either)
   const task = getDb()
-    .prepare('SELECT title, external_id FROM tasks WHERE id = ? AND (user_id = ? OR user_id IS NULL)')
-    .get(taskId, userId) as { title: string; external_id: string | null } | undefined;
+    .prepare('SELECT id, title, external_id FROM tasks WHERE (id = ? OR external_id = ?) AND (user_id = ? OR user_id IS NULL)')
+    .get(taskId, String(req.params.id), userId) as { id: number; title: string; external_id: string | null } | undefined;
 
   if (!task) {
     res.status(404).json({ error: 'Task not found' });
     return;
   }
 
-  // Update locally
+  // Update locally (use the resolved row id, not the request param)
   getDb()
     .prepare('UPDATE tasks SET status = ? WHERE id = ?')
-    .run(status, taskId);
+    .run(status, task.id);
 
   // Sync to OpenClaw (wait for it so the next auto-sync won't revert)
   // OpenClaw only supports 'completed' and 'open'; map 'in_progress' to 'open'

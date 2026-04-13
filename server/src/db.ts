@@ -141,4 +141,12 @@ export function initDb(): void {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
   `);
+
+  // Add unique index on external_id for upsert support (safe to run multiple times)
+  try {
+    d.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_external_id ON tasks(external_id) WHERE external_id IS NOT NULL');
+    d.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_calendar_events_external_id ON calendar_events(external_id) WHERE external_id IS NOT NULL');
+  } catch {
+    // Index may already exist in a different form
+  }
 }

@@ -30,6 +30,7 @@ export interface CalendarEvent {
 
 export interface Task {
   id: string | number;
+  externalId?: string | null;
   title: string;
   status: 'open' | 'in_progress' | 'completed';
   priority?: 'low' | 'medium' | 'high';

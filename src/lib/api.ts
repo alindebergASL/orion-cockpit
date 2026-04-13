@@ -154,8 +154,8 @@ class ApiClient {
     });
   }
 
-  async updateTaskStatus(id: number, status: string): Promise<void> {
-    await this.request(`/api/tasks/${id}/status`, {
+  async updateTaskStatus(id: number | string, status: string): Promise<void> {
+    await this.request(`/api/tasks/${encodeURIComponent(id)}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
     });

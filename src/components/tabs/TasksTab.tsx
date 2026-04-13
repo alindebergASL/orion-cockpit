@@ -111,20 +111,21 @@ export function TasksTab() {
     const nextStatus = currentStatus === 'completed' ? 'open' : 'completed';
     lastToggleRef.current = Date.now();
 
-    // Optimistic update (use == for loose comparison in case of number/string mismatch)
-    const numId = Number(taskId);
+    // Match by externalId or id
+    const matchTask = (t: Task) => t.externalId === taskId || t.id === taskId || String(t.id) === String(taskId);
+
+    // Optimistic update
     setTasks((prev) =>
-      prev.map((t) => (Number(t.id) === numId ? { ...t, status: nextStatus as Task['status'] } : t)),
+      prev.map((t) => (matchTask(t) ? { ...t, status: nextStatus as Task['status'] } : t)),
     );
 
     try {
-      await api.updateTaskStatus(numId, nextStatus);
-      const task = tasks.find((t) => Number(t.id) === numId);
-      trackActivity(nextStatus === 'completed' ? 'task_completed' : 'task_reopened', { taskId: numId, title: task?.title });
+      // Send the identifier to the backend (could be externalId or SQLite id)
+      await api.updateTaskStatus(taskId, nextStatus);
+      const task = tasks.find(matchTask);
+      trackActivity(nextStatus === 'completed' ? 'task_completed' : 'task_reopened', { taskId, title: task?.title });
     } catch {
-      // Don't revert — the backend already updated SQLite locally even if OpenClaw failed.
-      // The optimistic state is correct for the local view.
-      console.error('Task status update failed for task', numId);
+      console.error('Task status update failed for task', taskId);
     }
   }, [tasks]);
 
@@ -231,7 +232,7 @@ function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number | strin
       className={`flex items-start gap-3 border-b border-l-4 border-b-th-border px-4 py-3 ${borderColor}`}
     >
       <button
-        onClick={() => onToggle(task.id, task.status)}
+        onClick={() => onToggle(task.externalId || task.id, task.status)}
         className={`mt-0.5 shrink-0 transition-colors hover:text-cyan-400 ${color}`}
         title={task.status === 'completed' ? 'Mark open' : 'Mark complete'}
       >

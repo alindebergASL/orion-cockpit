@@ -98,12 +98,12 @@ export function HomeTab() {
 
   const handleToggleTask = useCallback(async (taskId: number | string, currentStatus: string) => {
     const nextStatus = currentStatus === 'completed' ? 'open' : 'completed';
-    const numId = Number(taskId);
+    const matchTask = (t: Task) => t.externalId === taskId || t.id === taskId || String(t.id) === String(taskId);
     setTasks((prev) =>
-      prev.map((t) => (Number(t.id) === numId ? { ...t, status: nextStatus as Task['status'] } : t)),
+      prev.map((t) => (matchTask(t) ? { ...t, status: nextStatus as Task['status'] } : t)),
     );
     try {
-      await api.updateTaskStatus(numId, nextStatus);
+      await api.updateTaskStatus(taskId, nextStatus);
     } catch {
       // Don't revert — backend already updated SQLite locally
     }
@@ -388,7 +388,7 @@ export function HomeTab() {
                     className="flex items-center gap-3 rounded-lg border border-th-border bg-th-surface px-4 py-2.5"
                   >
                     <button
-                      onClick={() => handleToggleTask(task.id, task.status)}
+                      onClick={() => handleToggleTask(task.externalId || task.id, task.status)}
                       className="shrink-0 text-th-text-secondary hover:text-cyan-400 transition-colors"
                       title="Mark complete"
                     >

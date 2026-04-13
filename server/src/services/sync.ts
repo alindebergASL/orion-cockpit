@@ -123,24 +123,44 @@ async function syncTasksInner(userId: number): Promise<unknown[]> {
   }
 
   const now = new Date().toISOString();
-  const deleteStmt = db.prepare('DELETE FROM tasks WHERE user_id = ?');
-  const insertStmt = db.prepare(`
+
+  // Upsert by external_id instead of delete-all + re-insert.
+  // This preserves SQLite row IDs so frontend references stay valid.
+  const upsertStmt = db.prepare(`
     INSERT INTO tasks (external_id, user_id, title, status, priority, due_date, description, list_name, synced_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(external_id) DO UPDATE SET
+      title = excluded.title, status = excluded.status, priority = excluded.priority,
+      due_date = excluded.due_date, description = excluded.description,
+      list_name = excluded.list_name, synced_at = excluded.synced_at
   `);
 
-  const insertMany = db.transaction(() => {
-    deleteStmt.run(userId);
+  // Get current external_ids to detect deletions
+  const existingIds = new Set(
+    (db.prepare('SELECT external_id FROM tasks WHERE user_id = ? AND external_id IS NOT NULL').all(userId) as { external_id: string }[])
+      .map((r) => r.external_id)
+  );
+
+  const incomingIds = new Set(tasks.filter((t) => t.id).map((t) => t.id!));
+
+  const syncAll = db.transaction(() => {
     for (const t of tasks) {
-      insertStmt.run(
-        t.id || null, userId, t.title, t.status || 'open',
+      if (!t.id) continue; // skip tasks with no external ID
+      upsertStmt.run(
+        t.id, userId, t.title, t.status || 'open',
         t.priority || null, t.dueDate || null,
         t.description || null, t.listName || null, now,
       );
     }
+    // Delete tasks that no longer exist in OpenClaw
+    for (const oldId of existingIds) {
+      if (!incomingIds.has(oldId)) {
+        db.prepare('DELETE FROM tasks WHERE external_id = ? AND user_id = ?').run(oldId, userId);
+      }
+    }
   });
 
-  insertMany();
+  syncAll();
 
   db.prepare('INSERT INTO sync_log (user_id, data_type, last_synced_at, status) VALUES (?, ?, ?, ?)')
     .run(userId, 'tasks', now, 'success');
