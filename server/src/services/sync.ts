@@ -1,11 +1,32 @@
 import { getDb } from '../db.js';
 import { openclawClient } from './openclaw.js';
 
+// Per-user sync mutex to prevent concurrent syncs from corrupting data
+const syncLocks = new Map<string, Promise<unknown>>();
+
+async function withSyncLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  // Wait for any existing sync to finish
+  while (syncLocks.has(key)) {
+    await syncLocks.get(key);
+  }
+  const promise = fn();
+  syncLocks.set(key, promise);
+  try {
+    return await promise;
+  } finally {
+    syncLocks.delete(key);
+  }
+}
+
 /**
  * Sync calendar events from OpenClaw's direct API into SQLite.
  * Uses GET /api/calendar/events (no LLM, calls gog directly).
  */
 export async function syncCalendar(userId: number): Promise<unknown[]> {
+  return withSyncLock(`calendar-${userId}`, () => syncCalendarInner(userId));
+}
+
+async function syncCalendarInner(userId: number): Promise<unknown[]> {
   const db = getDb();
 
   const user = db.prepare('SELECT username, display_name FROM users WHERE id = ?')
@@ -69,6 +90,10 @@ export async function syncCalendar(userId: number): Promise<unknown[]> {
  * Uses GET /api/tasks (no LLM, calls remindctl directly).
  */
 export async function syncTasks(userId: number): Promise<unknown[]> {
+  return withSyncLock(`tasks-${userId}`, () => syncTasksInner(userId));
+}
+
+async function syncTasksInner(userId: number): Promise<unknown[]> {
   const db = getDb();
 
   const user = db.prepare('SELECT username, display_name FROM users WHERE id = ?')

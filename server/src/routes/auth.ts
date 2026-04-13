@@ -12,6 +12,14 @@ const loginAttempts = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000;
 const RATE_LIMIT_MAX = 10;
 
+// Clean up expired entries every 15 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of loginAttempts) {
+    if (now >= entry.resetAt) loginAttempts.delete(ip);
+  }
+}, RATE_LIMIT_WINDOW);
+
 function checkRateLimit(req: Request, res: Response): boolean {
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
   const now = Date.now();

@@ -32,8 +32,11 @@ function buildSystemPrompt(user: { id: number; displayName: string; username: st
     .prepare('SELECT last_synced_at FROM sync_log WHERE user_id = ? AND data_type = ? ORDER BY id DESC LIMIT 1')
     .get(user.id, 'tasks') as { last_synced_at: string } | undefined;
 
-  const calendarJson = events.length ? JSON.stringify(events, null, 2) : '(no synced calendar data yet — call refresh_calendar to load)';
-  const taskJson = tasks.length ? JSON.stringify(tasks, null, 2) : '(no synced task data yet — call refresh_tasks to load)';
+  // Cap at 50 events and 50 tasks to keep system prompt reasonable
+  const cappedEvents = events.slice(0, 50);
+  const cappedTasks = tasks.slice(0, 50);
+  const calendarJson = cappedEvents.length ? JSON.stringify(cappedEvents, null, 2) : '(no synced calendar data yet — call refresh_calendar to load)';
+  const taskJson = cappedTasks.length ? JSON.stringify(cappedTasks, null, 2) : '(no synced task data yet — call refresh_tasks to load)';
 
   // Load soul.md if synced
   const soulRow = db.prepare("SELECT value FROM settings WHERE key = 'soul_md'")
@@ -148,46 +151,48 @@ chatRouter.post('/', async (req, res) => {
       .get(user.id) as { value: string } | undefined;
     const chatMode = userModePref?.value || config.chatMode;
 
-    if (chatMode === 'openclaw') {
-      // === OPENCLAW DIRECT MODE ===
-      // Route chat through OpenClaw's /v1/responses API
-      saveChatMessage(user.id, tab, convId, 'user', message);
-      updateConversationTitle(convId, message);
-      touchConversation(convId);
-
-      const openclawMessages = [
-        { role: 'system', content: systemPrompt },
-        ...history.map((m) => ({ role: m.role, content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) })),
-        { role: 'user', content: message },
-      ];
-
-      let fullResponse = '';
-      await openclawClient.streamChat(
-        { messages: openclawMessages },
-        (chunk) => {
-          fullResponse += chunk;
-          sendSSE(JSON.stringify({ type: 'text', content: chunk }));
-        },
-      );
-
-      if (fullResponse) {
-        saveChatMessage(user.id, tab, convId, 'assistant', fullResponse);
-      }
-
-      sendSSE('[DONE]');
-      res.end();
-      return;
-    }
-
-    // === LLM MODE (OpenRouter/Anthropic) ===
-    const provider = getProvider('chat', config.llm.tiers);
-
     // Save user message
     saveChatMessage(user.id, tab, convId, 'user', message);
-
-    // Auto-title from first message
     updateConversationTitle(convId, message);
     touchConversation(convId);
+
+    let usedOpenClaw = false;
+
+    if (chatMode === 'openclaw') {
+      // === OPENCLAW DIRECT MODE (with LLM fallback) ===
+      try {
+        const openclawMessages = [
+          { role: 'system', content: systemPrompt },
+          ...history.map((m) => ({ role: m.role, content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) })),
+          { role: 'user', content: message },
+        ];
+
+        let fullResponse = '';
+        await openclawClient.streamChat(
+          { messages: openclawMessages },
+          (chunk) => {
+            fullResponse += chunk;
+            sendSSE(JSON.stringify({ type: 'text', content: chunk }));
+          },
+        );
+
+        if (fullResponse) {
+          saveChatMessage(user.id, tab, convId, 'assistant', fullResponse);
+        }
+
+        sendSSE('[DONE]');
+        res.end();
+        return;
+      } catch (openclawErr) {
+        // OpenClaw failed — fall through to LLM mode
+        console.error('OpenClaw chat failed, falling back to LLM:', (openclawErr as Error).message);
+        sendSSE(JSON.stringify({ type: 'text', content: '*(OpenClaw unreachable — using fallback LLM)*\n\n' }));
+        usedOpenClaw = false;
+      }
+    }
+
+    // === LLM MODE (OpenRouter/Anthropic) — primary or fallback ===
+    const provider = getProvider('chat', config.llm.tiers);
 
     // Build message list
     const messages: LLMMessage[] = [

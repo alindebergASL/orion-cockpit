@@ -6,6 +6,7 @@ import { openclawClient } from '../services/openclaw.js';
 function ensureTimezone(ts: string): string {
   if (/[+-]\d{2}:\d{2}$/.test(ts) || ts.endsWith('Z')) return ts;
   const d = new Date(ts);
+  if (isNaN(d.getTime())) return ts; // pass through invalid timestamps
   const offset = -d.getTimezoneOffset();
   const sign = offset >= 0 ? '+' : '-';
   const hh = String(Math.floor(Math.abs(offset) / 60)).padStart(2, '0');

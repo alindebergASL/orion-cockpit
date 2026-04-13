@@ -30,7 +30,7 @@ insightsRouter.get('/', (req, res) => {
       title: r.title,
       body: r.body,
       actionType: r.action_type,
-      actionData: r.action_data ? JSON.parse(r.action_data as string) : null,
+      actionData: r.action_data ? (() => { try { return JSON.parse(r.action_data as string); } catch { return null; } })() : null,
       priority: r.priority,
       read: !!r.read,
       actedOn: !!r.acted_on,

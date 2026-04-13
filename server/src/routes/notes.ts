@@ -35,9 +35,17 @@ notesRouter.post('/', (req, res) => {
 
 notesRouter.put('/:id', (req, res) => {
   const { title, content } = req.body;
+  // Only update fields that were explicitly provided
+  const updates: string[] = [];
+  const values: unknown[] = [];
+  if (title !== undefined) { updates.push('title = ?'); values.push(title); }
+  if (content !== undefined) { updates.push('content = ?'); values.push(content); }
+  if (updates.length === 0) { res.json({ ok: true }); return; }
+  updates.push("updated_at = datetime('now')");
+  values.push(req.params.id, req.user!.id);
   const result = getDb()
-    .prepare("UPDATE notes SET title = ?, content = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?")
-    .run(title ?? '', content ?? '', req.params.id, req.user!.id);
+    .prepare(`UPDATE notes SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`)
+    .run(...values);
 
   if (result.changes === 0) {
     res.status(404).json({ error: 'Note not found' });

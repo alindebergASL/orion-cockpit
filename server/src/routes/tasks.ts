@@ -58,31 +58,33 @@ tasksRouter.post('/', async (req, res) => {
     return;
   }
 
-  // Insert locally first
-  const now = new Date().toISOString();
-  const result = getDb()
-    .prepare('INSERT INTO tasks (user_id, title, status, priority, due_date, description, list_name, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(userId, title, 'open', priority || null, dueDate || null, description || null, list || null, now);
+  try {
+    // Create on OpenClaw first so auto-sync won't orphan it
+    const created = await openclawClient.createTask({
+      title,
+      list: list || undefined,
+      priority: priority || undefined,
+      dueDate: dueDate || undefined,
+    });
 
-  res.status(201).json({
-    id: result.lastInsertRowid,
-    title,
-    status: 'open',
-    priority: priority || null,
-    dueDate: dueDate || null,
-    description: description || null,
-    listName: list || null,
-  });
+    const now = new Date().toISOString();
+    const result = getDb()
+      .prepare('INSERT INTO tasks (external_id, user_id, title, status, priority, due_date, description, list_name, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(created.id || null, userId, title, 'open', priority || null, dueDate || null, description || null, list || null, now);
 
-  // Create via direct API in the background
-  openclawClient.createTask({
-    title,
-    list: list || undefined,
-    priority: priority || undefined,
-    dueDate: dueDate || undefined,
-  }).then(() => syncTasks(userId)).catch((err) =>
-    console.error('Background task sync failed:', err.message),
-  );
+    res.status(201).json({
+      id: result.lastInsertRowid,
+      title,
+      status: 'open',
+      priority: priority || null,
+      dueDate: dueDate || null,
+      description: description || null,
+      listName: list || null,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to create task';
+    res.status(502).json({ error: message });
+  }
 });
 
 tasksRouter.put('/:id/status', async (req, res) => {
@@ -111,11 +113,13 @@ tasksRouter.put('/:id/status', async (req, res) => {
     .run(status, taskId);
 
   // Sync to OpenClaw (wait for it so the next auto-sync won't revert)
+  // OpenClaw only supports 'completed' and 'open'; map 'in_progress' to 'open'
   if (task.external_id) {
+    const openclawStatus = status === 'completed' ? 'completed' : 'open';
     try {
       await openclawClient.updateTaskStatus(
         task.external_id,
-        status as 'completed' | 'open',
+        openclawStatus,
       );
     } catch (err) {
       console.error(`Failed to sync task status to OpenClaw for task ${taskId}:`, (err as Error).message);
