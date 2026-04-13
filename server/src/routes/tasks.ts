@@ -105,19 +105,22 @@ tasksRouter.put('/:id/status', async (req, res) => {
     return;
   }
 
-  // Update locally first
+  // Update locally
   getDb()
     .prepare('UPDATE tasks SET status = ? WHERE id = ?')
     .run(status, taskId);
 
-  // Sync status to OpenClaw via direct API (non-blocking)
+  // Sync to OpenClaw (wait for it so the next auto-sync won't revert)
   if (task.external_id) {
-    openclawClient.updateTaskStatus(
-      task.external_id,
-      status as 'completed' | 'open',
-    ).catch(() =>
-      console.error(`Failed to sync task status to OpenClaw for task ${taskId}`),
-    );
+    try {
+      await openclawClient.updateTaskStatus(
+        task.external_id,
+        status as 'completed' | 'open',
+      );
+    } catch (err) {
+      console.error(`Failed to sync task status to OpenClaw for task ${taskId}:`, (err as Error).message);
+      // Local update still succeeded — don't fail the request
+    }
   }
 
   res.json({ ok: true });
