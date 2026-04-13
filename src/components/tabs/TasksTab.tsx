@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   RefreshCw,
   ListChecks,
@@ -84,9 +84,14 @@ export function TasksTab() {
     fetchTasks();
   }, [fetchTasks]);
 
-  // Auto-refresh when chat tool calls modify data
+  // Auto-refresh when chat tool calls modify data (debounce to avoid stomping on toggling)
+  const lastToggleRef = useRef(0);
   useEffect(() => {
-    const handler = () => fetchTasks();
+    const handler = () => {
+      // Don't re-fetch if we just toggled a task (within 5s)
+      if (Date.now() - lastToggleRef.current < 5000) return;
+      fetchTasks();
+    };
     window.addEventListener('orion-data-changed', handler);
     return () => window.removeEventListener('orion-data-changed', handler);
   }, [fetchTasks]);
@@ -104,18 +109,22 @@ export function TasksTab() {
 
   const handleToggleStatus = useCallback(async (taskId: number | string, currentStatus: string) => {
     const nextStatus = currentStatus === 'completed' ? 'open' : 'completed';
-    // Optimistic update
+    lastToggleRef.current = Date.now();
+
+    // Optimistic update (use == for loose comparison in case of number/string mismatch)
+    const numId = Number(taskId);
     setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: nextStatus as Task['status'] } : t)),
+      prev.map((t) => (Number(t.id) === numId ? { ...t, status: nextStatus as Task['status'] } : t)),
     );
+
     try {
-      await api.updateTaskStatus(Number(taskId), nextStatus);
-      const task = tasks.find((t) => t.id === taskId);
-      trackActivity(nextStatus === 'completed' ? 'task_completed' : 'task_reopened', { taskId, title: task?.title });
+      await api.updateTaskStatus(numId, nextStatus);
+      const task = tasks.find((t) => Number(t.id) === numId);
+      trackActivity(nextStatus === 'completed' ? 'task_completed' : 'task_reopened', { taskId: numId, title: task?.title });
     } catch {
-      setTasks((prev) =>
-        prev.map((t) => (t.id === taskId ? { ...t, status: currentStatus as Task['status'] } : t)),
-      );
+      // Don't revert — the backend already updated SQLite locally even if OpenClaw failed.
+      // The optimistic state is correct for the local view.
+      console.error('Task status update failed for task', numId);
     }
   }, [tasks]);
 

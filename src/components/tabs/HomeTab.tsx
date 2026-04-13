@@ -98,15 +98,14 @@ export function HomeTab() {
 
   const handleToggleTask = useCallback(async (taskId: number | string, currentStatus: string) => {
     const nextStatus = currentStatus === 'completed' ? 'open' : 'completed';
+    const numId = Number(taskId);
     setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: nextStatus as Task['status'] } : t)),
+      prev.map((t) => (Number(t.id) === numId ? { ...t, status: nextStatus as Task['status'] } : t)),
     );
     try {
-      await api.updateTaskStatus(Number(taskId), nextStatus);
+      await api.updateTaskStatus(numId, nextStatus);
     } catch {
-      setTasks((prev) =>
-        prev.map((t) => (t.id === taskId ? { ...t, status: currentStatus as Task['status'] } : t)),
-      );
+      // Don't revert — backend already updated SQLite locally
     }
   }, []);
 

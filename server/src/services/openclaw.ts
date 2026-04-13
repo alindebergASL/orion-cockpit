@@ -208,6 +208,7 @@ export class OpenClawClient {
       method: 'PATCH',
       headers: this.headers(),
       body: JSON.stringify({ status }),
+      signal: AbortSignal.timeout(10000), // 10s timeout
     });
     if (!res.ok) throw new Error(`Task update error ${res.status}: ${await res.text()}`);
   }
