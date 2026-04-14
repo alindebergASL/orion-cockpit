@@ -124,15 +124,17 @@ async function syncTasksInner(userId: number): Promise<unknown[]> {
 
   const now = new Date().toISOString();
 
-  // Upsert by external_id instead of delete-all + re-insert.
-  // This preserves SQLite row IDs so frontend references stay valid.
-  const upsertStmt = db.prepare(`
+  // Manual upsert (check existence, then UPDATE or INSERT).
+  // This preserves SQLite row IDs across syncs so frontend references stay valid.
+  const findStmt = db.prepare('SELECT id FROM tasks WHERE external_id = ? AND user_id = ?');
+  const updateStmt = db.prepare(`
+    UPDATE tasks SET title = ?, status = ?, priority = ?, due_date = ?,
+      description = ?, list_name = ?, synced_at = ?
+    WHERE id = ?
+  `);
+  const insertStmt = db.prepare(`
     INSERT INTO tasks (external_id, user_id, title, status, priority, due_date, description, list_name, synced_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(external_id) DO UPDATE SET
-      title = excluded.title, status = excluded.status, priority = excluded.priority,
-      due_date = excluded.due_date, description = excluded.description,
-      list_name = excluded.list_name, synced_at = excluded.synced_at
   `);
 
   // Get current external_ids to detect deletions
@@ -145,17 +147,28 @@ async function syncTasksInner(userId: number): Promise<unknown[]> {
 
   const syncAll = db.transaction(() => {
     for (const t of tasks) {
-      if (!t.id) continue; // skip tasks with no external ID
-      upsertStmt.run(
-        t.id, userId, t.title, t.status || 'open',
-        t.priority || null, t.dueDate || null,
-        t.description || null, t.listName || null, now,
-      );
+      if (!t.id) continue;
+      const existing = findStmt.get(t.id, userId) as { id: number } | undefined;
+      if (existing) {
+        updateStmt.run(
+          t.title, t.status || 'open', t.priority || null, t.dueDate || null,
+          t.description || null, t.listName || null, now, existing.id,
+        );
+      } else {
+        insertStmt.run(
+          t.id, userId, t.title, t.status || 'open',
+          t.priority || null, t.dueDate || null,
+          t.description || null, t.listName || null, now,
+        );
+      }
     }
-    // Delete tasks that no longer exist in OpenClaw
-    for (const oldId of existingIds) {
-      if (!incomingIds.has(oldId)) {
-        db.prepare('DELETE FROM tasks WHERE external_id = ? AND user_id = ?').run(oldId, userId);
+    // Only delete tasks that exist in OpenClaw's data snapshot.
+    // If OpenClaw returned empty (error or no tasks), skip deletion to avoid wiping local data.
+    if (tasks.length > 0) {
+      for (const oldId of existingIds) {
+        if (!incomingIds.has(oldId)) {
+          db.prepare('DELETE FROM tasks WHERE external_id = ? AND user_id = ?').run(oldId, userId);
+        }
       }
     }
   });
