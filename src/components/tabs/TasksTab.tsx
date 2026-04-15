@@ -48,7 +48,6 @@ export function TasksTab() {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [syncedAt, setSyncedAt] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'open' | 'in_progress' | 'completed'>('open');
 
   const fetchTasks = useCallback(async () => {
     setLoading(true);
@@ -129,7 +128,6 @@ export function TasksTab() {
     }
   }, [tasks]);
 
-  const filtered = filter === 'all' ? tasks : tasks.filter((t) => t.status === filter);
 
   return (
     <div className="flex h-full flex-col">
@@ -157,23 +155,6 @@ export function TasksTab() {
           <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} />
           Sync
         </button>
-      </div>
-
-      {/* Filter bar */}
-      <div className="flex gap-1 border-b border-th-border px-4 py-2">
-        {(['open', 'in_progress', 'completed', 'all'] as const).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`rounded-md px-2.5 py-1 text-xs capitalize transition-colors ${
-              filter === f
-                ? 'bg-cyan-600/20 text-cyan-400'
-                : 'text-th-text-secondary hover:text-th-text-secondary'
-            }`}
-          >
-            {f.replace('_', ' ')}
-          </button>
-        ))}
       </div>
 
       {/* Quick add */}
@@ -205,7 +186,7 @@ export function TasksTab() {
           </div>
         )}
 
-        {!error && filtered.length === 0 && !loading && (
+        {!error && tasks.length === 0 && !loading && (
           <div className="flex flex-col items-center gap-2 px-4 py-12 text-th-text-secondary">
             <ListChecks className="h-10 w-10" />
             <p className="text-sm">No tasks found</p>
@@ -213,7 +194,7 @@ export function TasksTab() {
         )}
 
         <div className="flex flex-col">
-          {filtered.map((task) => (
+          {tasks.map((task) => (
             <TaskRow key={task.id} task={task} onToggle={handleToggleStatus} />
           ))}
         </div>
