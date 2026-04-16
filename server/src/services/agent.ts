@@ -127,6 +127,14 @@ export async function pushActivityDigest(): Promise<void> {
 
       if (activities.length === 0) continue;
 
+      // Load yesterday's daily journal note
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const dateKey = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+      const dailyNote = db
+        .prepare('SELECT content FROM daily_notes WHERE user_id = ? AND date = ?')
+        .get(user.id, dateKey) as { content: string } | undefined;
+
       // Summarize activity
       const actionCounts: Record<string, number> = {};
       for (const a of activities) {
@@ -144,12 +152,16 @@ export async function pushActivityDigest(): Promise<void> {
           return `${a.action}: "${details.title || 'unknown'}"`;
         });
 
+      const journalSection = dailyNote?.content?.trim()
+        ? `\n\n${user.display_name}'s journal entry for ${dateKey}:\n"${dailyNote.content.trim()}"\n\nPlease remember what they wrote — it reflects their priorities, thoughts, and state of mind.`
+        : '';
+
       const digest = `Daily activity digest for ${user.display_name} (${new Date().toISOString().split('T')[0]}):
 
 Activity summary: ${summary}
 Total actions: ${activities.length}
 
-${insightActions.length > 0 ? `Insight responses: ${insightActions.join(', ')}` : ''}
+${insightActions.length > 0 ? `Insight responses: ${insightActions.join(', ')}` : ''}${journalSection}
 
 Please note these patterns for future reference and personalization.`;
 
