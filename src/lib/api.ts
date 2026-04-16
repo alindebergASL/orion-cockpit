@@ -260,6 +260,19 @@ class ApiClient {
     await this.request(`/api/conversations/${id}`, { method: 'DELETE' });
   }
 
+  // ── Daily Notes ──────────────────────────────────────────
+
+  async getDailyNote(date: string): Promise<{ date: string; content: string; updatedAt: string | null }> {
+    return this.request(`/api/daily-notes/${date}`);
+  }
+
+  async saveDailyNote(date: string, content: string): Promise<void> {
+    await this.request(`/api/daily-notes/${date}`, {
+      method: 'PUT',
+      body: JSON.stringify({ content }),
+    });
+  }
+
   // ── Insights ──────────────────────────────────────────────
 
   async getInsights(): Promise<{ insights: Insight[]; unreadCount: number }> {

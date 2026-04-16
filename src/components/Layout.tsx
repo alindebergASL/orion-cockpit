@@ -23,7 +23,7 @@ import { NotificationPanel } from './NotificationPanel';
 import { useNotifications } from '../hooks/useNotifications';
 
 const tabs: { id: TabId; label: string; icon: React.FC<{ className?: string }> }[] = [
-  { id: 'home', label: 'Home', icon: Home },
+  { id: 'today', label: 'Today', icon: Home },
   { id: 'chat', label: 'Chat', icon: MessageSquare },
   { id: 'calendar', label: 'Calendar', icon: CalendarDays },
   { id: 'tasks', label: 'Tasks', icon: ListChecks },

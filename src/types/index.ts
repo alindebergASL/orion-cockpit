@@ -75,4 +75,4 @@ export interface Conversation {
   updatedAt: string;
 }
 
-export type TabId = 'home' | 'chat' | 'calendar' | 'tasks' | 'notes';
+export type TabId = 'today' | 'chat' | 'calendar' | 'tasks' | 'notes';

@@ -6,14 +6,14 @@ import { ToastContainer } from './components/Toast';
 import { trackActivity } from './lib/activity';
 import { LoginPage } from './components/auth/LoginPage';
 import { Layout } from './components/Layout';
-import { HomeTab } from './components/tabs/HomeTab';
+import { TodayTab } from './components/tabs/TodayTab';
 import { ChatTab } from './components/tabs/ChatTab';
 import { CalendarTab } from './components/tabs/CalendarTab';
 import { TasksTab } from './components/tabs/TasksTab';
 import { NotesTab } from './components/tabs/NotesTab';
 
 const tabComponents: Record<TabId, React.FC> = {
-  home: HomeTab,
+  today: TodayTab,
   chat: ChatTab,
   calendar: CalendarTab,
   tasks: TasksTab,
@@ -24,7 +24,7 @@ const tabEntries = Object.entries(tabComponents) as [TabId, React.FC][];
 const tabIds = Object.keys(tabComponents) as TabId[];
 
 function Dashboard() {
-  const [activeTab, setActiveTab] = useState<TabId>('home');
+  const [activeTab, setActiveTab] = useState<TabId>('today');
 
   // Keyboard shortcuts: Ctrl/Cmd + 1-5 for tabs
   useEffect(() => {
