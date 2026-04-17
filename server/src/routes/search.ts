@@ -128,6 +128,43 @@ searchRouter.get('/', (req, res) => {
     });
   }
 
+  // Search projects
+  const projectRows = db.prepare(`
+    SELECT id, title, description, status, tags
+    FROM projects
+    WHERE user_id = ? AND (title LIKE ? OR description LIKE ? OR tags LIKE ?)
+    ORDER BY updated_at DESC LIMIT 10
+  `).all(userId, pattern, pattern, pattern) as Record<string, unknown>[];
+
+  for (const p of projectRows) {
+    results.push({
+      type: 'note' as const,
+      id: p.id as number,
+      title: `Project: ${p.title}`,
+      snippet: String(p.description || '').slice(0, 80) || `${p.status} project`,
+      meta: { isProject: true },
+    });
+  }
+
+  // Search project tasks
+  const projectTaskRows = db.prepare(`
+    SELECT pt.id, pt.title, pt.status, p.title as project_title, p.id as project_id
+    FROM project_tasks pt
+    JOIN projects p ON pt.project_id = p.id
+    WHERE p.user_id = ? AND pt.title LIKE ?
+    ORDER BY pt.id DESC LIMIT 10
+  `).all(userId, pattern) as Record<string, unknown>[];
+
+  for (const pt of projectTaskRows) {
+    results.push({
+      type: 'task' as const,
+      id: pt.id as number,
+      title: String(pt.title),
+      snippet: `Project: ${pt.project_title} · ${pt.status}`,
+      meta: { isProjectTask: true, projectId: pt.project_id },
+    });
+  }
+
   // Search chat messages
   const chats = db.prepare(`
     SELECT m.id, m.content, m.role, m.timestamp, c.title as conv_title, c.id as conv_id
