@@ -53,6 +53,15 @@ export interface User {
   role: 'admin' | 'user';
 }
 
+export interface SearchResult {
+  type: 'event' | 'task' | 'note' | 'journal' | 'chat' | 'insight';
+  id: number | string;
+  title: string;
+  snippet: string;
+  date?: string;
+  meta?: Record<string, unknown>;
+}
+
 export interface Insight {
   id: number;
   type: string;

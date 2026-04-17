@@ -11,6 +11,7 @@ import {
   Bell,
   Settings,
   Users,
+  Search,
   Menu,
   X,
 } from 'lucide-react';
@@ -104,6 +105,16 @@ export function Layout({ activeTab, onTabChange, children }: LayoutProps) {
               {label}
             </button>
           ))}
+
+          {/* Search button */}
+          <button
+            onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+            className="flex w-16 flex-col items-center gap-1 rounded-lg px-2 py-2.5 text-[11px] text-th-text-secondary hover:bg-th-elevated hover:text-th-text transition-colors"
+            title="Search (Ctrl+K)"
+          >
+            <Search className="h-5 w-5" />
+            Search
+          </button>
         </div>
 
         {/* Bottom section */}

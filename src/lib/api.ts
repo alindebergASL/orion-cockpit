@@ -1,4 +1,4 @@
-import type { User, CalendarEvent, Task, Note, Conversation, Insight } from '../types';
+import type { User, CalendarEvent, Task, Note, Conversation, Insight, SearchResult } from '../types';
 
 class ApiClient {
   private token: string | null = null;
@@ -258,6 +258,24 @@ class ApiClient {
 
   async deleteConversation(id: number): Promise<void> {
     await this.request(`/api/conversations/${id}`, { method: 'DELETE' });
+  }
+
+  // ── Search ────────────────────────────────────────────────
+
+  async globalSearch(query: string): Promise<{
+    results: SearchResult[];
+    tags: string[];
+    mentions: string[];
+  }> {
+    return this.request(`/api/search?q=${encodeURIComponent(query)}`);
+  }
+
+  async searchByTag(tag: string): Promise<{ results: SearchResult[]; tags: string[]; mentions: string[] }> {
+    return this.request(`/api/search?tag=${encodeURIComponent(tag)}`);
+  }
+
+  async searchByMention(mention: string): Promise<{ results: SearchResult[]; tags: string[]; mentions: string[] }> {
+    return this.request(`/api/search?mention=${encodeURIComponent(mention)}`);
   }
 
   // ── Daily Notes ──────────────────────────────────────────

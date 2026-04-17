@@ -3,6 +3,7 @@ import type { TabId } from './types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastContainer } from './components/Toast';
+import { SearchPalette } from './components/SearchPalette';
 import { trackActivity } from './lib/activity';
 import { LoginPage } from './components/auth/LoginPage';
 import { Layout } from './components/Layout';
@@ -25,11 +26,17 @@ const tabIds = Object.keys(tabComponents) as TabId[];
 
 function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabId>('today');
+  const [searchOpen, setSearchOpen] = useState(false);
 
-  // Keyboard shortcuts: Ctrl/Cmd + 1-5 for tabs
+  // Keyboard shortcuts: Ctrl/Cmd + 1-5 for tabs, Ctrl/Cmd+K for search
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey) {
+        if (e.key === 'k') {
+          e.preventDefault();
+          setSearchOpen((prev) => !prev);
+          return;
+        }
         const num = parseInt(e.key, 10);
         if (num >= 1 && num <= tabIds.length) {
           e.preventDefault();
@@ -57,13 +64,22 @@ function Dashboard() {
   };
 
   return (
-    <Layout activeTab={activeTab} onTabChange={handleTabChange}>
-      {tabEntries.map(([id, Component]) => (
-        <div key={id} className={id === activeTab ? 'h-full' : 'hidden'}>
-          <Component />
-        </div>
-      ))}
-    </Layout>
+    <>
+      <Layout activeTab={activeTab} onTabChange={handleTabChange}>
+        {tabEntries.map(([id, Component]) => (
+          <div key={id} className={id === activeTab ? 'h-full' : 'hidden'}>
+            <Component />
+          </div>
+        ))}
+      </Layout>
+
+      {searchOpen && (
+        <SearchPalette
+          onClose={() => setSearchOpen(false)}
+          onNavigate={(tab) => { handleTabChange(tab as TabId); setSearchOpen(false); }}
+        />
+      )}
+    </>
   );
 }
 

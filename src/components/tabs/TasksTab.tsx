@@ -12,6 +12,7 @@ import type { Task } from '../../types';
 import { api } from '../../lib/api';
 import { showToast } from '../Toast';
 import { trackActivity } from '../../lib/activity';
+import { renderRichText } from '../../lib/richText';
 
 const statusIcons: Record<Task['status'], React.FC<{ className?: string }>> = {
   open: Circle,
@@ -220,7 +221,7 @@ function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number | strin
         <StatusIcon className="h-4 w-4" />
       </button>
       <div className="flex-1">
-        <p className={`text-sm ${task.status === 'completed' ? 'text-th-text-secondary line-through' : 'text-th-text'}`}>{task.title}</p>
+        <p className={`text-sm ${task.status === 'completed' ? 'text-th-text-secondary line-through' : 'text-th-text'}`}>{renderRichText(task.title)}</p>
         {task.description && (
           <p className="mt-0.5 text-xs text-th-text-secondary">{task.description}</p>
         )}
