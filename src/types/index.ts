@@ -84,4 +84,37 @@ export interface Conversation {
   updatedAt: string;
 }
 
-export type TabId = 'today' | 'chat' | 'calendar' | 'tasks' | 'notes';
+export interface Project {
+  id: number;
+  title: string;
+  description: string;
+  status: 'active' | 'paused' | 'completed';
+  targetDate?: string | null;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  taskCount: number;
+  completedTaskCount: number;
+}
+
+export interface ProjectTask {
+  id: number;
+  title: string;
+  status: 'open' | 'completed';
+  assignee?: string | null;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface ProjectUpdate {
+  id: number;
+  content: string;
+  createdAt: string;
+}
+
+export interface ProjectDetail extends Project {
+  tasks: ProjectTask[];
+  updates: ProjectUpdate[];
+}
+
+export type TabId = 'today' | 'chat' | 'calendar' | 'tasks' | 'notes' | 'projects';

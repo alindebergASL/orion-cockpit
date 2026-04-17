@@ -12,6 +12,7 @@ import { ChatTab } from './components/tabs/ChatTab';
 import { CalendarTab } from './components/tabs/CalendarTab';
 import { TasksTab } from './components/tabs/TasksTab';
 import { NotesTab } from './components/tabs/NotesTab';
+import { ProjectsTab } from './components/tabs/ProjectsTab';
 
 const tabComponents: Record<TabId, React.FC> = {
   today: TodayTab,
@@ -19,6 +20,7 @@ const tabComponents: Record<TabId, React.FC> = {
   calendar: CalendarTab,
   tasks: TasksTab,
   notes: NotesTab,
+  projects: ProjectsTab,
 };
 
 const tabEntries = Object.entries(tabComponents) as [TabId, React.FC][];

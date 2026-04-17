@@ -17,6 +17,7 @@ import { insightsRouter } from './routes/insights.js';
 import { activityRouter } from './routes/activity.js';
 import { dailyNotesRouter } from './routes/daily-notes.js';
 import { searchRouter } from './routes/search.js';
+import { projectsRouter } from './routes/projects.js';
 import { runAgentLoop, pushActivityDigest } from './services/agent.js';
 import { addClient } from './services/sse.js';
 import { authenticate } from './middleware/auth.js';
@@ -41,6 +42,7 @@ app.use('/api/insights', insightsRouter);
 app.use('/api/activity', activityRouter);
 app.use('/api/daily-notes', dailyNotesRouter);
 app.use('/api/search', searchRouter);
+app.use('/api/projects', projectsRouter);
 
 // SSE notification stream
 app.get('/api/notifications/stream', authenticate, (req, res) => {

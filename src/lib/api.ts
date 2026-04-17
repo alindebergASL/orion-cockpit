@@ -1,4 +1,4 @@
-import type { User, CalendarEvent, Task, Note, Conversation, Insight, SearchResult } from '../types';
+import type { User, CalendarEvent, Task, Note, Conversation, Insight, SearchResult, Project, ProjectDetail, ProjectTask, ProjectUpdate } from '../types';
 
 class ApiClient {
   private token: string | null = null;
@@ -258,6 +258,59 @@ class ApiClient {
 
   async deleteConversation(id: number): Promise<void> {
     await this.request(`/api/conversations/${id}`, { method: 'DELETE' });
+  }
+
+  // ── Projects ─────────────────────────────────────────────
+
+  async getProjects(): Promise<Project[]> {
+    return this.request('/api/projects');
+  }
+
+  async getProject(id: number): Promise<ProjectDetail> {
+    return this.request(`/api/projects/${id}`);
+  }
+
+  async createProject(title?: string): Promise<Project> {
+    return this.request('/api/projects', {
+      method: 'POST',
+      body: JSON.stringify({ title }),
+    });
+  }
+
+  async updateProject(id: number, data: Partial<{ title: string; description: string; status: string; targetDate: string; tags: string[] }>): Promise<void> {
+    await this.request(`/api/projects/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteProject(id: number): Promise<void> {
+    await this.request(`/api/projects/${id}`, { method: 'DELETE' });
+  }
+
+  async addProjectTask(projectId: number, title: string, assignee?: string): Promise<ProjectTask> {
+    return this.request(`/api/projects/${projectId}/tasks`, {
+      method: 'POST',
+      body: JSON.stringify({ title, assignee }),
+    });
+  }
+
+  async toggleProjectTask(projectId: number, taskId: number, status: string): Promise<void> {
+    await this.request(`/api/projects/${projectId}/tasks/${taskId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  async deleteProjectTask(projectId: number, taskId: number): Promise<void> {
+    await this.request(`/api/projects/${projectId}/tasks/${taskId}`, { method: 'DELETE' });
+  }
+
+  async addProjectUpdate(projectId: number, content: string): Promise<ProjectUpdate> {
+    return this.request(`/api/projects/${projectId}/updates`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
   }
 
   // ── Search ────────────────────────────────────────────────

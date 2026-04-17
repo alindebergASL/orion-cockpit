@@ -5,6 +5,7 @@ import {
   CalendarDays,
   ListChecks,
   StickyNote,
+  FolderOpen,
   Wifi,
   WifiOff,
   LogOut,
@@ -29,6 +30,7 @@ const tabs: { id: TabId; label: string; icon: React.FC<{ className?: string }> }
   { id: 'calendar', label: 'Calendar', icon: CalendarDays },
   { id: 'tasks', label: 'Tasks', icon: ListChecks },
   { id: 'notes', label: 'Notes', icon: StickyNote },
+  { id: 'projects', label: 'Projects', icon: FolderOpen },
 ];
 
 interface LayoutProps {
