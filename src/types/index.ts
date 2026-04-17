@@ -112,6 +112,15 @@ export interface ProjectUpdate {
   createdAt: string;
 }
 
+export interface Template {
+  id: number;
+  name: string;
+  type: 'daily' | 'weekly' | 'meeting' | 'project' | 'custom';
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ProjectDetail extends Project {
   tasks: ProjectTask[];
   updates: ProjectUpdate[];

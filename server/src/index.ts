@@ -18,6 +18,8 @@ import { activityRouter } from './routes/activity.js';
 import { dailyNotesRouter } from './routes/daily-notes.js';
 import { searchRouter } from './routes/search.js';
 import { projectsRouter } from './routes/projects.js';
+import { templatesRouter } from './routes/templates.js';
+import { weeklyNotesRouter } from './routes/weekly-notes.js';
 import { runAgentLoop, pushActivityDigest } from './services/agent.js';
 import { addClient } from './services/sse.js';
 import { authenticate } from './middleware/auth.js';
@@ -43,6 +45,8 @@ app.use('/api/activity', activityRouter);
 app.use('/api/daily-notes', dailyNotesRouter);
 app.use('/api/search', searchRouter);
 app.use('/api/projects', projectsRouter);
+app.use('/api/templates', templatesRouter);
+app.use('/api/weekly-notes', weeklyNotesRouter);
 
 // SSE notification stream
 app.get('/api/notifications/stream', authenticate, (req, res) => {

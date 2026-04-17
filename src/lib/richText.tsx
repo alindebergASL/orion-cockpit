@@ -1,30 +1,41 @@
 import React from 'react';
 
 /**
- * Parse text for #tags and @mentions and render them as styled, clickable spans.
- * Also parses >date syntax for scheduling references.
+ * Parse text for #tags, @mentions, >dates, and [[backlinks]].
+ * Renders them as styled, clickable spans.
  */
 export function renderRichText(
   text: string,
   onTagClick?: (tag: string) => void,
   onMentionClick?: (mention: string) => void,
+  onBacklinkClick?: (title: string) => void,
 ): React.ReactNode {
-  // Match #tags, @mentions, and >dates
-  const pattern = /(#\w[\w-]*)|(@\w[\w-]*)|(>\d{4}-\d{2}-\d{2})|(>today)|(>tomorrow)/g;
+  // Match #tags, @mentions, >dates, and [[backlinks]]
+  const pattern = /(\[\[[^\]]+\]\])|(#\w[\w-]*)|(@\w[\w-]*)|(>\d{4}-\d{2}-\d{2})|(>today)|(>tomorrow)/g;
 
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
   while ((match = pattern.exec(text)) !== null) {
-    // Add text before the match
     if (match.index > lastIndex) {
       parts.push(text.slice(lastIndex, match.index));
     }
 
     const full = match[0];
 
-    if (full.startsWith('#')) {
+    if (full.startsWith('[[') && full.endsWith(']]')) {
+      const title = full.slice(2, -2);
+      parts.push(
+        <button
+          key={`${match.index}-link`}
+          onClick={(e) => { e.stopPropagation(); onBacklinkClick?.(title); }}
+          className="inline text-emerald-400 hover:text-emerald-300 hover:underline cursor-pointer"
+        >
+          {title}
+        </button>
+      );
+    } else if (full.startsWith('#')) {
       const tag = full.slice(1);
       parts.push(
         <button
@@ -69,7 +80,6 @@ export function renderRichText(
     lastIndex = match.index + full.length;
   }
 
-  // Add remaining text
   if (lastIndex < text.length) {
     parts.push(text.slice(lastIndex));
   }

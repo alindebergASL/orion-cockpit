@@ -128,18 +128,44 @@ function Timeline({ events, date }: { events: CalendarEvent[]; date: Date }) {
 
 // ── Main Component ──────────────────────────────────────
 
+import type { Template } from '../../types';
+
+type ViewMode = 'day' | 'week';
+
+function getWeekKey(d: Date): string {
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  const dayOfYear = Math.ceil((d.getTime() - jan1.getTime()) / 86400000);
+  const weekNum = Math.ceil((dayOfYear + jan1.getDay()) / 7);
+  return `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+}
+
+function getWeekRange(d: Date): string {
+  const day = d.getDay();
+  const start = new Date(d);
+  start.setDate(d.getDate() - day);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  return `${start.toLocaleDateString([], { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
+}
+
 export function TodayTab() {
   const { user } = useAuth();
+  const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [date, setDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [dailyNote, setDailyNote] = useState('');
+  const [weeklyNote, setWeeklyNote] = useState('');
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [showTemplates, setShowTemplates] = useState(false);
   const [loading, setLoading] = useState(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const weeklyDebounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   const dateKey = formatDateKey(date);
+  const weekKey = getWeekKey(date);
   const isViewingToday = formatDateKey(date) === formatDateKey(new Date());
 
   // Load all data
@@ -151,14 +177,18 @@ export function TodayTab() {
       isViewingToday ? api.getWeather().catch(() => null) : Promise.resolve(null),
       api.getInsights().catch(() => ({ insights: [], unreadCount: 0 })),
       api.getDailyNote(dateKey).catch(() => ({ date: dateKey, content: '', updatedAt: null })),
-    ]).then(([calData, taskData, weatherData, insightData, noteData]) => {
+      api.getWeeklyNote(weekKey).catch(() => ({ week: weekKey, content: '', updatedAt: null })),
+      api.getTemplates().catch(() => []),
+    ]).then(([calData, taskData, weatherData, insightData, noteData, weeklyData, templateData]) => {
       setEvents(calData.events);
       setTasks(taskData.tasks);
       setWeather(weatherData);
       setInsights(insightData.insights.filter((i: Insight) => !i.read).slice(0, 3));
       setDailyNote(noteData.content);
+      setWeeklyNote((weeklyData as { content: string }).content);
+      setTemplates(templateData as Template[]);
     }).finally(() => setLoading(false));
-  }, [dateKey, isViewingToday]);
+  }, [dateKey, weekKey, isViewingToday]);
 
   // Auto-save daily note (debounced)
   const handleNoteChange = useCallback((value: string) => {
@@ -168,6 +198,22 @@ export function TodayTab() {
       api.saveDailyNote(dateKey, value).catch(() => {});
     }, 500);
   }, [dateKey]);
+
+  // Auto-save weekly note (debounced)
+  const handleWeeklyNoteChange = useCallback((value: string) => {
+    setWeeklyNote(value);
+    if (weeklyDebounceRef.current) clearTimeout(weeklyDebounceRef.current);
+    weeklyDebounceRef.current = setTimeout(() => {
+      api.saveWeeklyNote(weekKey, value).catch(() => {});
+    }, 500);
+  }, [weekKey]);
+
+  // Apply template to daily note
+  const applyTemplate = useCallback((template: Template) => {
+    const newContent = dailyNote ? `${dailyNote}\n\n${template.content}` : template.content;
+    handleNoteChange(newContent);
+    setShowTemplates(false);
+  }, [dailyNote, handleNoteChange]);
 
   const handleToggleTask = useCallback(async (taskId: number | string, currentStatus: string) => {
     const nextStatus = currentStatus === 'completed' ? 'open' : 'completed';
@@ -179,7 +225,7 @@ export function TodayTab() {
     } catch { /* don't revert */ }
   }, []);
 
-  const navigateDate = (dir: -1 | 1) => {
+  const navigateDate = (dir: number) => {
     setDate((prev) => { const d = new Date(prev); d.setDate(d.getDate() + dir); return d; });
   };
 
@@ -225,7 +271,18 @@ export function TodayTab() {
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={() => navigateDate(-1)} className="rounded-lg p-2 text-th-text-secondary hover:bg-th-elevated">
+            {/* Day/Week toggle */}
+            <div className="flex rounded-lg border border-th-border text-[11px] mr-1">
+              <button
+                onClick={() => setViewMode('day')}
+                className={`rounded-l-lg px-2 py-1 ${viewMode === 'day' ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-secondary'}`}
+              >Day</button>
+              <button
+                onClick={() => setViewMode('week')}
+                className={`rounded-r-lg px-2 py-1 ${viewMode === 'week' ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-secondary'}`}
+              >Week</button>
+            </div>
+            <button onClick={() => navigateDate(viewMode === 'week' ? -7 : -1)} className="rounded-lg p-2 text-th-text-secondary hover:bg-th-elevated">
               <ChevronLeft className="h-4 w-4" />
             </button>
             {!isViewingToday && (
@@ -233,7 +290,7 @@ export function TodayTab() {
                 Today
               </button>
             )}
-            <button onClick={() => navigateDate(1)} className="rounded-lg p-2 text-th-text-secondary hover:bg-th-elevated">
+            <button onClick={() => navigateDate(viewMode === 'week' ? 7 : 1)} className="rounded-lg p-2 text-th-text-secondary hover:bg-th-elevated">
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
@@ -280,21 +337,63 @@ export function TodayTab() {
           </div>
         )}
 
-        {/* My Plan + Journal */}
-        <section className="mb-5">
-          <div className="flex items-center gap-2 mb-2">
-            <BookOpen className="h-4 w-4 text-cyan-400" />
-            <h3 className="text-sm font-semibold text-th-text-secondary">My Plan + Journal</h3>
-          </div>
-          <textarea
-            value={dailyNote}
-            onChange={(e) => handleNoteChange(e.target.value)}
-            placeholder={isViewingToday
-              ? "What's your focus today? Priorities, intentions, thoughts..."
-              : "Notes for this day..."}
-            className="w-full min-h-[100px] rounded-lg border border-th-border bg-th-surface px-4 py-3 text-base md:text-sm text-th-text leading-relaxed outline-none placeholder-th-text-muted resize-y focus:border-cyan-600"
-          />
-        </section>
+        {/* My Plan + Journal (day view) or Weekly Note (week view) */}
+        {viewMode === 'day' ? (
+          <section className="mb-5">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-cyan-400" />
+                <h3 className="text-sm font-semibold text-th-text-secondary">My Plan + Journal</h3>
+              </div>
+              {templates.length > 0 && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowTemplates(!showTemplates)}
+                    className="rounded-md border border-th-border px-2 py-1 text-[11px] text-th-text-secondary hover:bg-th-elevated"
+                  >
+                    Templates
+                  </button>
+                  {showTemplates && (
+                    <div className="absolute right-0 top-8 z-10 w-48 rounded-lg border border-th-border bg-th-surface shadow-lg">
+                      {templates.map((t) => (
+                        <button
+                          key={t.id}
+                          onClick={() => applyTemplate(t)}
+                          className="block w-full px-3 py-2 text-left text-xs text-th-text hover:bg-th-elevated"
+                        >
+                          {t.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <textarea
+              value={dailyNote}
+              onChange={(e) => handleNoteChange(e.target.value)}
+              placeholder={isViewingToday
+                ? "What's your focus today? Priorities, intentions, thoughts..."
+                : "Notes for this day..."}
+              className="w-full min-h-[100px] rounded-lg border border-th-border bg-th-surface px-4 py-3 text-base md:text-sm text-th-text leading-relaxed outline-none placeholder-th-text-muted resize-y focus:border-cyan-600"
+            />
+          </section>
+        ) : (
+          <section className="mb-5">
+            <div className="flex items-center gap-2 mb-2">
+              <BookOpen className="h-4 w-4 text-cyan-400" />
+              <h3 className="text-sm font-semibold text-th-text-secondary">
+                Weekly Note <span className="font-normal text-th-text-muted">{getWeekRange(date)}</span>
+              </h3>
+            </div>
+            <textarea
+              value={weeklyNote}
+              onChange={(e) => handleWeeklyNoteChange(e.target.value)}
+              placeholder="What went well this week? What's blocked? What's the plan for next week?"
+              className="w-full min-h-[150px] rounded-lg border border-th-border bg-th-surface px-4 py-3 text-base md:text-sm text-th-text leading-relaxed outline-none placeholder-th-text-muted resize-y focus:border-cyan-600"
+            />
+          </section>
+        )}
 
         {/* Timeline */}
         <section className="mb-5">

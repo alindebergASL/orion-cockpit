@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { X, Calendar, ListChecks, RefreshCw } from 'lucide-react';
+import { X, Calendar, ListChecks, RefreshCw, Plus, Trash2, FileText } from 'lucide-react';
+import type { Template } from '../types';
 import { api } from '../lib/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { showToast } from './Toast';
@@ -21,6 +22,8 @@ export function SettingsModal({ onClose }: Props) {
   const [enabledTaskLists, setEnabledTaskLists] = useState<string[]>([]);
   const [weatherLocation, setWeatherLocation] = useState('');
   const [chatMode, setChatMode] = useState('openclaw');
+  const [userTemplates, setUserTemplates] = useState<Template[]>([]);
+  const [editingTemplate, setEditingTemplate] = useState<{ name: string; type: string; content: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -44,6 +47,9 @@ export function SettingsModal({ onClose }: Props) {
 
         setWeatherLocation((settings.weather_location as string) || '');
         setChatMode((settings.chat_mode as string) || 'openclaw');
+
+        const tmpls = await api.getTemplates().catch(() => []);
+        setUserTemplates(tmpls);
       } catch { /* ignore */ }
       finally { setLoading(false); }
     })();
@@ -233,6 +239,79 @@ export function SettingsModal({ onClose }: Props) {
             )}
           </section>
         </div>
+
+          {/* Templates */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-th-text-secondary">Templates</h3>
+            </div>
+
+            <div className="space-y-1.5">
+              {userTemplates.map((t) => (
+                <div key={t.id} className="flex items-center justify-between rounded-lg border border-th-border px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-3.5 w-3.5 text-th-text-secondary" />
+                    <div>
+                      <p className="text-sm text-th-text">{t.name}</p>
+                      <p className="text-[10px] text-th-text-muted">{t.type} template</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={async () => { await api.deleteTemplate(t.id); setUserTemplates((prev) => prev.filter((x) => x.id !== t.id)); }}
+                    className="rounded p-1 text-th-text-muted hover:text-red-400"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {editingTemplate ? (
+              <div className="mt-2 rounded-lg border border-th-border p-3 space-y-2">
+                <input
+                  value={editingTemplate.name}
+                  onChange={(e) => setEditingTemplate({ ...editingTemplate, name: e.target.value })}
+                  placeholder="Template name"
+                  className="w-full rounded-md border border-th-border bg-th-input px-2.5 py-1.5 text-xs text-th-text outline-none"
+                />
+                <select
+                  value={editingTemplate.type}
+                  onChange={(e) => setEditingTemplate({ ...editingTemplate, type: e.target.value })}
+                  className="w-full rounded-md border border-th-border bg-th-input px-2.5 py-1.5 text-xs text-th-text outline-none"
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="meeting">Meeting</option>
+                  <option value="custom">Custom</option>
+                </select>
+                <textarea
+                  value={editingTemplate.content}
+                  onChange={(e) => setEditingTemplate({ ...editingTemplate, content: e.target.value })}
+                  placeholder="Template content..."
+                  rows={4}
+                  className="w-full resize-none rounded-md border border-th-border bg-th-input px-2.5 py-1.5 text-xs text-th-text outline-none"
+                />
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setEditingTemplate(null)} className="text-xs text-th-text-secondary">Cancel</button>
+                  <button
+                    onClick={async () => {
+                      const tmpl = await api.createTemplate(editingTemplate.name, editingTemplate.type, editingTemplate.content);
+                      setUserTemplates((prev) => [...prev, tmpl]);
+                      setEditingTemplate(null);
+                    }}
+                    className="rounded-md bg-cyan-600 px-3 py-1 text-xs text-white hover:bg-cyan-500"
+                  >Create</button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setEditingTemplate({ name: '', type: 'daily', content: '' })}
+                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-th-border py-2 text-xs text-th-text-secondary hover:border-cyan-600 hover:text-cyan-400"
+              >
+                <Plus className="h-3.5 w-3.5" /> Add Template
+              </button>
+            )}
+          </section>
 
         {/* Footer */}
         <div className="flex justify-end gap-2 border-t border-th-border px-5 py-3">

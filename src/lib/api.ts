@@ -1,4 +1,4 @@
-import type { User, CalendarEvent, Task, Note, Conversation, Insight, SearchResult, Project, ProjectDetail, ProjectTask, ProjectUpdate } from '../types';
+import type { User, CalendarEvent, Task, Note, Conversation, Insight, SearchResult, Project, ProjectDetail, ProjectTask, ProjectUpdate, Template } from '../types';
 
 class ApiClient {
   private token: string | null = null;
@@ -258,6 +258,43 @@ class ApiClient {
 
   async deleteConversation(id: number): Promise<void> {
     await this.request(`/api/conversations/${id}`, { method: 'DELETE' });
+  }
+
+  // ── Templates ────────────────────────────────────────────
+
+  async getTemplates(): Promise<Template[]> {
+    return this.request('/api/templates');
+  }
+
+  async createTemplate(name: string, type: string, content: string): Promise<Template> {
+    return this.request('/api/templates', {
+      method: 'POST',
+      body: JSON.stringify({ name, type, content }),
+    });
+  }
+
+  async updateTemplate(id: number, data: Partial<{ name: string; type: string; content: string }>): Promise<void> {
+    await this.request(`/api/templates/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteTemplate(id: number): Promise<void> {
+    await this.request(`/api/templates/${id}`, { method: 'DELETE' });
+  }
+
+  // ── Weekly Notes ────────────────────────────────────────
+
+  async getWeeklyNote(week: string): Promise<{ week: string; content: string; updatedAt: string | null }> {
+    return this.request(`/api/weekly-notes/${week}`);
+  }
+
+  async saveWeeklyNote(week: string, content: string): Promise<void> {
+    await this.request(`/api/weekly-notes/${week}`, {
+      method: 'PUT',
+      body: JSON.stringify({ content }),
+    });
   }
 
   // ── Projects ─────────────────────────────────────────────
