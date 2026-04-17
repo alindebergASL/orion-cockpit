@@ -28,8 +28,8 @@ export function SettingsModal({ onClose }: Props) {
     (async () => {
       try {
         const [cals, lists, settings] = await Promise.all([
-          api.getAvailableCalendars().catch(() => []),
-          api.getAvailableTaskLists().catch(() => []),
+          api.getAvailableCalendars().catch((err) => { console.error('Calendar list failed:', err); return []; }),
+          api.getAvailableTaskLists().catch((err) => { console.error('Task list failed:', err); return []; }),
           api.getSettings(),
         ]);
 

@@ -44,9 +44,11 @@ settingsRouter.put('/:key', (req, res) => {
 settingsRouter.get('/calendars', async (_req, res) => {
   try {
     const calendars = await openclawClient.getCalendarList();
+    console.log(`Calendar list fetched: ${calendars.length} calendars`);
     res.json(calendars);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to fetch calendars';
+    console.error('Calendar list fetch failed:', message);
     res.status(502).json({ error: message });
   }
 });
