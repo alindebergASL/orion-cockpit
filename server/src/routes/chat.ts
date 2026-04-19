@@ -138,6 +138,10 @@ chatRouter.post('/', async (req, res) => {
     res.write(`data: ${data}\n\n`);
   };
 
+  const sendHeartbeat = () => {
+    res.write(': heartbeat\n\n');
+  };
+
   // Send conversation ID so frontend can track it
   sendSSE(JSON.stringify({ type: 'conversation', conversationId: convId }));
 
@@ -174,6 +178,7 @@ chatRouter.post('/', async (req, res) => {
             fullResponse += chunk;
             sendSSE(JSON.stringify({ type: 'text', content: chunk }));
           },
+          sendHeartbeat,
         );
 
         if (fullResponse) {

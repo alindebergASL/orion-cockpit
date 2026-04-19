@@ -212,4 +212,12 @@ export function initDb(): void {
   } catch {
     // Index may already exist in a different form
   }
+
+  // Add icon and color columns to projects (safe migration)
+  try {
+    d.exec("ALTER TABLE projects ADD COLUMN icon TEXT DEFAULT NULL");
+  } catch { /* column already exists */ }
+  try {
+    d.exec("ALTER TABLE projects ADD COLUMN color TEXT DEFAULT 'slate'");
+  } catch { /* column already exists */ }
 }

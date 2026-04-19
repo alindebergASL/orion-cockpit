@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getDb } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
+import { openclawClient } from '../services/openclaw.js';
 
 export const projectsRouter = Router();
 
@@ -10,7 +11,7 @@ projectsRouter.use(authenticate);
 projectsRouter.get('/', (req, res) => {
   const userId = req.user!.id;
   const rows = getDb()
-    .prepare('SELECT id, title, description, status, target_date, tags, created_at, updated_at FROM projects WHERE user_id = ? ORDER BY updated_at DESC')
+    .prepare('SELECT id, title, description, status, target_date, tags, icon, color, created_at, updated_at FROM projects WHERE user_id = ? ORDER BY updated_at DESC')
     .all(userId) as Record<string, unknown>[];
 
   const projects = rows.map((r) => {
@@ -29,6 +30,8 @@ projectsRouter.get('/', (req, res) => {
       status: r.status,
       targetDate: r.target_date,
       tags: r.tags ? (r.tags as string).split(',').map((t: string) => t.trim()).filter(Boolean) : [],
+      icon: r.icon || null,
+      color: r.color || 'slate',
       createdAt: r.created_at,
       updatedAt: r.updated_at,
       taskCount: total,
@@ -43,7 +46,7 @@ projectsRouter.get('/', (req, res) => {
 projectsRouter.get('/:id', (req, res) => {
   const userId = req.user!.id;
   const project = getDb()
-    .prepare('SELECT id, title, description, status, target_date, tags, created_at, updated_at FROM projects WHERE id = ? AND user_id = ?')
+    .prepare('SELECT id, title, description, status, target_date, tags, icon, color, created_at, updated_at FROM projects WHERE id = ? AND user_id = ?')
     .get(req.params.id, userId) as Record<string, unknown> | undefined;
 
   if (!project) {
@@ -66,6 +69,8 @@ projectsRouter.get('/:id', (req, res) => {
     status: project.status,
     targetDate: project.target_date,
     tags: project.tags ? (project.tags as string).split(',').map((t: string) => t.trim()).filter(Boolean) : [],
+    icon: project.icon || null,
+    color: project.color || 'slate',
     createdAt: project.created_at,
     updatedAt: project.updated_at,
     tasks: tasks.map((t) => ({
@@ -87,11 +92,11 @@ projectsRouter.get('/:id', (req, res) => {
 // Create project
 projectsRouter.post('/', (req, res) => {
   const userId = req.user!.id;
-  const { title, description, targetDate, tags } = req.body;
+  const { title, description, targetDate, tags, icon, color } = req.body;
 
   const result = getDb()
-    .prepare('INSERT INTO projects (user_id, title, description, target_date, tags) VALUES (?, ?, ?, ?, ?)')
-    .run(userId, title || 'New Project', description || '', targetDate || null, Array.isArray(tags) ? tags.join(',') : tags || null);
+    .prepare('INSERT INTO projects (user_id, title, description, target_date, tags, icon, color) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .run(userId, title || 'New Project', description || '', targetDate || null, Array.isArray(tags) ? tags.join(',') : tags || null, icon || null, color || 'slate');
 
   res.status(201).json({
     id: result.lastInsertRowid,
@@ -100,6 +105,8 @@ projectsRouter.post('/', (req, res) => {
     status: 'active',
     targetDate: targetDate || null,
     tags: tags || [],
+    icon: icon || null,
+    color: color || 'slate',
     taskCount: 0,
     completedTaskCount: 0,
   });
@@ -108,7 +115,7 @@ projectsRouter.post('/', (req, res) => {
 // Update project
 projectsRouter.put('/:id', (req, res) => {
   const userId = req.user!.id;
-  const { title, description, status, targetDate, tags } = req.body;
+  const { title, description, status, targetDate, tags, icon, color } = req.body;
 
   const updates: string[] = [];
   const values: unknown[] = [];
@@ -118,6 +125,8 @@ projectsRouter.put('/:id', (req, res) => {
   if (status !== undefined) { updates.push('status = ?'); values.push(status); }
   if (targetDate !== undefined) { updates.push('target_date = ?'); values.push(targetDate || null); }
   if (tags !== undefined) { updates.push('tags = ?'); values.push(Array.isArray(tags) ? tags.join(',') : tags); }
+  if (icon !== undefined) { updates.push('icon = ?'); values.push(icon); }
+  if (color !== undefined) { updates.push('color = ?'); values.push(color); }
   if (updates.length === 0) { res.json({ ok: true }); return; }
 
   updates.push("updated_at = datetime('now')");
@@ -213,4 +222,129 @@ projectsRouter.post('/:id/updates', (req, res) => {
     content,
     createdAt: new Date().toISOString(),
   });
+});
+
+// ── AI-powered endpoints ─────────────────────────────────
+
+// AI project digest: health analysis + next action
+projectsRouter.post('/:id/ai-digest', async (req, res) => {
+  const userId = req.user!.id;
+  const project = getDb()
+    .prepare('SELECT id, title, description, status, target_date, tags FROM projects WHERE id = ? AND user_id = ?')
+    .get(req.params.id, userId) as Record<string, unknown> | undefined;
+
+  if (!project) { res.status(404).json({ error: 'Project not found' }); return; }
+
+  const tasks = getDb()
+    .prepare('SELECT title, status FROM project_tasks WHERE project_id = ? ORDER BY sort_order ASC')
+    .all(project.id) as { title: string; status: string }[];
+
+  const updates = getDb()
+    .prepare('SELECT content, created_at FROM project_updates WHERE project_id = ? ORDER BY created_at DESC LIMIT 5')
+    .all(project.id) as { content: string; created_at: string }[];
+
+  const completed = tasks.filter((t) => t.status === 'completed').length;
+  const taskList = tasks.map((t) => `  ${t.status === 'completed' ? '[x]' : '[ ]'} ${t.title}`).join('\n');
+  const updateList = updates.map((u) => `  - ${u.created_at}: ${u.content}`).join('\n');
+
+  const prompt = `You are analyzing a personal project for a family dashboard. Be concise and actionable.
+
+Project: ${project.title}
+Status: ${project.status}
+Target date: ${project.target_date || 'none set'}
+Description: ${project.description || 'none'}
+Tags: ${project.tags || 'none'}
+Tasks: ${completed}/${tasks.length} completed
+${taskList || '  (no tasks)'}
+Recent updates:
+${updateList || '  (no updates yet)'}
+
+Respond with ONLY valid JSON (no markdown, no code fences):
+{
+  "health": "on_track" or "at_risk" or "needs_attention",
+  "summary": "1-2 sentence status narrative",
+  "nextAction": "single most impactful next step",
+  "blockers": []
+}`;
+
+  try {
+    const raw = await openclawClient.chatOnce([
+      { role: 'system', content: 'You are a concise project analyst. Return only valid JSON.' },
+      { role: 'user', content: prompt },
+    ]);
+
+    const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    const digest = JSON.parse(cleaned);
+    res.json(digest);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to generate digest', detail: String(err) });
+  }
+});
+
+// AI plan generation: generate tasks from project goal
+projectsRouter.post('/:id/ai-plan', async (req, res) => {
+  const userId = req.user!.id;
+  const project = getDb()
+    .prepare('SELECT id, title, description FROM projects WHERE id = ? AND user_id = ?')
+    .get(req.params.id, userId) as Record<string, unknown> | undefined;
+
+  if (!project) { res.status(404).json({ error: 'Project not found' }); return; }
+
+  const existingTasks = getDb()
+    .prepare('SELECT title FROM project_tasks WHERE project_id = ?')
+    .all(project.id) as { title: string }[];
+
+  const existingList = existingTasks.length > 0
+    ? `\nExisting tasks (don't duplicate):\n${existingTasks.map((t) => `  - ${t.title}`).join('\n')}`
+    : '';
+
+  const prompt = `Break down this personal project into actionable tasks.
+
+Project: ${project.title}
+Description: ${project.description || 'none'}
+${existingList}
+
+Generate 5-8 concrete, actionable tasks. Return ONLY valid JSON (no markdown, no code fences):
+{
+  "tasks": [
+    { "title": "Task description" }
+  ]
+}
+
+Make tasks specific and ordered logically. Keep language casual and practical for a family household.`;
+
+  try {
+    const raw = await openclawClient.chatOnce([
+      { role: 'system', content: 'You are a helpful project planner. Return only valid JSON.' },
+      { role: 'user', content: prompt },
+    ]);
+
+    const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    const plan = JSON.parse(cleaned);
+
+    // Insert tasks into DB
+    const maxOrder = getDb().prepare('SELECT MAX(sort_order) as mx FROM project_tasks WHERE project_id = ?').get(project.id) as { mx: number | null };
+    let sortOrder = (maxOrder.mx ?? -1) + 1;
+
+    const insertStmt = getDb().prepare('INSERT INTO project_tasks (project_id, title, sort_order) VALUES (?, ?, ?)');
+    const createdTasks = [];
+
+    for (const task of plan.tasks) {
+      const result = insertStmt.run(project.id, task.title, sortOrder);
+      createdTasks.push({
+        id: result.lastInsertRowid,
+        title: task.title,
+        status: 'open',
+        assignee: null,
+        sortOrder,
+      });
+      sortOrder++;
+    }
+
+    getDb().prepare("UPDATE projects SET updated_at = datetime('now') WHERE id = ?").run(project.id);
+
+    res.json({ tasks: createdTasks });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to generate plan', detail: String(err) });
+  }
 });

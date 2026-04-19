@@ -91,10 +91,19 @@ export interface Project {
   status: 'active' | 'paused' | 'completed';
   targetDate?: string | null;
   tags: string[];
+  icon?: string | null;
+  color?: string | null;
   createdAt: string;
   updatedAt: string;
   taskCount: number;
   completedTaskCount: number;
+}
+
+export interface ProjectDigest {
+  health: 'on_track' | 'at_risk' | 'needs_attention';
+  summary: string;
+  nextAction: string;
+  blockers: string[];
 }
 
 export interface ProjectTask {

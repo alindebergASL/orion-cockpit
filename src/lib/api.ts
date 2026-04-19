@@ -1,4 +1,4 @@
-import type { User, CalendarEvent, Task, Note, Conversation, Insight, SearchResult, Project, ProjectDetail, ProjectTask, ProjectUpdate, Template } from '../types';
+import type { User, CalendarEvent, Task, Note, Conversation, Insight, SearchResult, Project, ProjectDetail, ProjectTask, ProjectUpdate, ProjectDigest, Template } from '../types';
 
 class ApiClient {
   private token: string | null = null;
@@ -314,7 +314,7 @@ class ApiClient {
     });
   }
 
-  async updateProject(id: number, data: Partial<{ title: string; description: string; status: string; targetDate: string; tags: string[] }>): Promise<void> {
+  async updateProject(id: number, data: Partial<{ title: string; description: string; status: string; targetDate: string; tags: string[]; icon: string | null; color: string }>): Promise<void> {
     await this.request(`/api/projects/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -348,6 +348,14 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({ content }),
     });
+  }
+
+  async getProjectDigest(projectId: number): Promise<ProjectDigest> {
+    return this.request(`/api/projects/${projectId}/ai-digest`, { method: 'POST' });
+  }
+
+  async generateProjectPlan(projectId: number): Promise<{ tasks: ProjectTask[] }> {
+    return this.request(`/api/projects/${projectId}/ai-plan`, { method: 'POST' });
   }
 
   // ── Search ────────────────────────────────────────────────

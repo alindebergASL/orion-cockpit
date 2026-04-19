@@ -34,6 +34,7 @@ export class OpenClawClient {
   async streamChat(
     opts: OpenClawStreamOptions,
     onText: (chunk: string) => void,
+    onHeartbeat?: () => void,
   ): Promise<void> {
     // Extract system messages into instructions field
     const systemMessages = opts.messages.filter((m) => m.role === 'system');
@@ -48,9 +49,11 @@ export class OpenClawClient {
         content: m.content,
       }));
 
+    const controller = new AbortController();
     const res = await fetch(`${this.baseUrl}/v1/responses`, {
       method: 'POST',
       headers: this.headers(),
+      signal: controller.signal,
       body: JSON.stringify({
         model: 'openclaw/default',
         instructions,
@@ -68,32 +71,55 @@ export class OpenClawClient {
     const decoder = new TextDecoder();
     let buffer = '';
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    const IDLE_TIMEOUT = 120_000;
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
+    const resetIdle = () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        controller.abort();
+      }, IDLE_TIMEOUT);
+    };
 
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const data = line.slice(6).trim();
-        if (data === '[DONE]') return;
+    // Send heartbeats while waiting so downstream SSE stays alive
+    const heartbeatInterval = onHeartbeat
+      ? setInterval(onHeartbeat, 15_000)
+      : null;
 
-        try {
-          const parsed = JSON.parse(data);
-          // Responses API: output_text.delta events
-          if (parsed.type === 'response.output_text.delta' && parsed.delta) {
-            onText(parsed.delta);
+    resetIdle();
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        resetIdle();
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') return;
+
+          try {
+            const parsed = JSON.parse(data);
+            // Responses API: output_text.delta events
+            if (parsed.type === 'response.output_text.delta' && parsed.delta) {
+              onText(parsed.delta);
+            }
+            // Also handle chat completions format as fallback
+            const delta = parsed.choices?.[0]?.delta;
+            if (delta?.content) onText(delta.content);
+          } catch {
+            // skip malformed chunks
           }
-          // Also handle chat completions format as fallback
-          const delta = parsed.choices?.[0]?.delta;
-          if (delta?.content) onText(delta.content);
-        } catch {
-          // skip malformed chunks
         }
       }
+    } finally {
+      if (idleTimer) clearTimeout(idleTimer);
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
     }
   }
 
