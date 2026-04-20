@@ -12,8 +12,11 @@ import {
   X,
   Pencil,
   Filter,
+  Sparkles,
+  RefreshCw,
+  Smile,
 } from 'lucide-react';
-import type { Project, ProjectDetail, ProjectTask } from '../../types';
+import type { Project, ProjectDetail, ProjectTask, ProjectDigest } from '../../types';
 import { api } from '../../lib/api';
 import { renderRichText } from '../../lib/richText';
 import { trackActivity } from '../../lib/activity';
@@ -40,6 +43,73 @@ const statusIcons: Record<string, React.FC<{ className?: string }>> = {
   completed: CheckCircle2,
 };
 
+const PROJECT_COLORS = [
+  { name: 'slate',   hex: '#64748b' },
+  { name: 'red',     hex: '#ef4444' },
+  { name: 'orange',  hex: '#f97316' },
+  { name: 'amber',   hex: '#f59e0b' },
+  { name: 'emerald', hex: '#10b981' },
+  { name: 'cyan',    hex: '#06b6d4' },
+  { name: 'blue',    hex: '#3b82f6' },
+  { name: 'purple',  hex: '#8b5cf6' },
+  { name: 'pink',    hex: '#ec4899' },
+] as const;
+
+function getColorHex(name: string | null | undefined): string {
+  const found = PROJECT_COLORS.find((c) => c.name === name);
+  return found ? found.hex : '#64748b';
+}
+
+const EMOJI_CATEGORIES: { name: string; emojis: string[] }[] = [
+  { name: 'Home & Family',  emojis: ['🏠', '🏡', '👨‍👩‍👧', '👶', '🐶', '🐱', '🛋️', '🛏️', '🔑'] },
+  { name: 'Health',         emojis: ['💪', '🏃', '🧘', '🚴', '🏋️', '❤️', '🥗', '💊', '🦷'] },
+  { name: 'Money',          emojis: ['💰', '📊', '💳', '🏦', '📈', '💸', '🪙'] },
+  { name: 'Travel',         emojis: ['✈️', '🏖️', '🗺️', '🚗', '🏕️', '🎒', '🧳', '🌍'] },
+  { name: 'Learning',       emojis: ['📚', '🎓', '✏️', '📝', '💡', '🧠', '🔬'] },
+  { name: 'Creative',       emojis: ['🎨', '🎵', '📷', '🎬', '✍️', '🎭', '🎸'] },
+  { name: 'Food',           emojis: ['🍳', '🍕', '🍎', '☕', '🍷', '🥘', '🍰'] },
+  { name: 'Nature',         emojis: ['🌱', '🌿', '🌸', '🌞', '🌊', '🌲', '🌙'] },
+  { name: 'Work',           emojis: ['💼', '🚀', '⭐', '🎯', '📅', '⚡', '🔥', '🏆'] },
+];
+
+function ProgressRing({ progress, size = 28, stroke = 3, color }: { progress: number; size?: number; stroke?: number; color: string }) {
+  const r = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * r;
+  const offset = circumference * (1 - Math.max(0, Math.min(100, progress)) / 100);
+  return (
+    <svg width={size} height={size} className="shrink-0">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeWidth={stroke} className="text-th-border" />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke={color}
+        strokeWidth={stroke}
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        style={{ transition: 'stroke-dashoffset 0.4s ease' }}
+      />
+    </svg>
+  );
+}
+
+function HealthBadge({ health }: { health: ProjectDigest['health'] }) {
+  const config = {
+    on_track:         { label: 'On Track',         dot: 'bg-emerald-400', text: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+    at_risk:          { label: 'At Risk',          dot: 'bg-amber-400',   text: 'text-amber-400',   bg: 'bg-amber-400/10'   },
+    needs_attention:  { label: 'Needs Attention',  dot: 'bg-red-400',     text: 'text-red-400',     bg: 'bg-red-400/10'     },
+  }[health];
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${config.bg} ${config.text}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${config.dot}`} />
+      {config.label}
+    </span>
+  );
+}
+
 export function ProjectsTab() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -54,8 +124,13 @@ export function ProjectsTab() {
   const [editingTaskTitle, setEditingTaskTitle] = useState('');
   const [hideCompleted, setHideCompleted] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'completed'>('all');
+  const [digest, setDigest] = useState<ProjectDigest | null>(null);
+  const [digestLoading, setDigestLoading] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [planLoading, setPlanLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
   const detailIdRef = useRef<number | null>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     api.getProjects()
@@ -71,11 +146,24 @@ export function ProjectsTab() {
     if (activeId === null) { setDetail(null); return; }
     detailIdRef.current = activeId;
     setLoadingDetail(true);
+    setDigest(null);
     api.getProject(activeId)
       .then(setDetail)
       .catch(() => setDetail(null))
       .finally(() => setLoadingDetail(false));
   }, [activeId]);
+
+  // Close emoji picker on outside click
+  useEffect(() => {
+    if (!showEmojiPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showEmojiPicker]);
 
   const createProject = useCallback(async () => {
     try {
@@ -100,11 +188,52 @@ export function ProjectsTab() {
   const updateField = useCallback((field: string, value: unknown) => {
     if (!detail) return;
     setDetail({ ...detail, [field]: value } as ProjectDetail);
+    // Keep sidebar projects list in sync for icon/color/title/status
+    if (field === 'icon' || field === 'color' || field === 'title' || field === 'status') {
+      setProjects((prev) => prev.map((p) => p.id === detail.id ? { ...p, [field]: value } as Project : p));
+    }
     const id = detailIdRef.current;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       if (id) api.updateProject(id, { [field]: value }).catch(() => {});
     }, 500);
+  }, [detail]);
+
+  const handleSetIcon = useCallback((emoji: string | null) => {
+    updateField('icon', emoji);
+    setShowEmojiPicker(false);
+  }, [updateField]);
+
+  const handleSetColor = useCallback((colorName: string) => {
+    updateField('color', colorName);
+  }, [updateField]);
+
+  const fetchDigest = useCallback(async () => {
+    if (!detail) return;
+    setDigestLoading(true);
+    try {
+      const d = await api.getProjectDigest(detail.id);
+      setDigest(d);
+      trackActivity('project_digest_generated', { projectId: detail.id });
+    } catch {
+      setDigest(null);
+    } finally {
+      setDigestLoading(false);
+    }
+  }, [detail]);
+
+  const handleGeneratePlan = useCallback(async () => {
+    if (!detail) return;
+    setPlanLoading(true);
+    try {
+      const { tasks } = await api.generateProjectPlan(detail.id);
+      setDetail((prev) => prev ? { ...prev, tasks: [...prev.tasks, ...tasks] } : prev);
+      setProjects((prev) => prev.map((p) => p.id === detail.id ? { ...p, taskCount: p.taskCount + tasks.length } : p));
+      trackActivity('project_plan_generated', { projectId: detail.id, taskCount: tasks.length });
+    } catch { /* ignore */ }
+    finally {
+      setPlanLoading(false);
+    }
   }, [detail]);
 
   const addTag = useCallback(() => {
@@ -163,7 +292,6 @@ export function ProjectsTab() {
       tasks: detail.tasks.map((t) => t.id === editingTaskId ? { ...t, title: editingTaskTitle } : t),
     });
     setEditingTaskId(null);
-    // Backend task title update (reuse status endpoint pattern)
     try {
       await api.toggleProjectTask(detail.id, editingTaskId, detail.tasks.find((t) => t.id === editingTaskId)?.status || 'open');
     } catch { /* ignore */ }
@@ -189,6 +317,8 @@ export function ProjectsTab() {
       </div>
     );
   }
+
+  const detailColorHex = detail ? getColorHex(detail.color) : '#64748b';
 
   return (
     <div className="flex h-full flex-col md:flex-row">
@@ -234,11 +364,13 @@ export function ProjectsTab() {
             const StatusIcon = statusIcons[project.status] || Circle;
             const progress = project.taskCount > 0 ? Math.round((project.completedTaskCount / project.taskCount) * 100) : 0;
             const isCompleted = project.status === 'completed';
+            const colorHex = getColorHex(project.color);
             return (
               <button
                 key={project.id}
                 onClick={() => setActiveId(project.id)}
-                className={`group flex w-full items-center justify-between px-3 py-2.5 text-left transition-colors ${
+                style={{ borderLeftColor: colorHex, borderLeftWidth: '3px' }}
+                className={`group flex w-full items-center gap-2 pr-2 py-2.5 pl-2 text-left transition-colors ${
                   activeId === project.id
                     ? 'bg-th-elevated text-th-text'
                     : isCompleted
@@ -246,25 +378,30 @@ export function ProjectsTab() {
                       : 'text-th-text-secondary hover:bg-th-elevated/50 hover:text-th-text'
                 }`}
               >
+                {/* Progress ring or status icon */}
+                {project.taskCount > 0 ? (
+                  <ProgressRing progress={progress} size={26} stroke={2.5} color={progress === 100 ? '#10b981' : colorHex} />
+                ) : (
+                  <div className="flex h-[26px] w-[26px] items-center justify-center">
+                    <StatusIcon className={`h-3.5 w-3.5 ${statusColors[project.status]}`} />
+                  </div>
+                )}
+
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <StatusIcon className={`h-3 w-3 shrink-0 ${statusColors[project.status]}`} />
+                  <div className="flex items-center gap-1.5">
+                    {project.icon && <span className="text-sm leading-none">{project.icon}</span>}
                     <p className={`truncate text-sm ${isCompleted ? 'line-through' : ''}`}>{project.title || 'New Project'}</p>
                   </div>
-                  <div className="mt-0.5 flex items-center gap-2 ml-5">
-                    {project.taskCount > 0 && (
-                      <span className="text-[10px] text-th-text-muted">{project.completedTaskCount}/{project.taskCount}</span>
-                    )}
-                    {progress > 0 && (
-                      <div className="h-1.5 w-16 rounded-full bg-th-border overflow-hidden">
-                        <div className={`h-full rounded-full ${progress === 100 ? 'bg-emerald-400' : 'bg-cyan-400'}`} style={{ width: `${progress}%` }} />
-                      </div>
-                    )}
-                  </div>
+                  {project.taskCount > 0 && (
+                    <div className="mt-0.5 text-[10px] text-th-text-muted">
+                      {project.completedTaskCount}/{project.taskCount} · {progress}%
+                    </div>
+                  )}
                 </div>
+
                 <button
                   onClick={(e) => { e.stopPropagation(); deleteProject(project.id); }}
-                  className="ml-1 shrink-0 rounded p-1.5 text-th-text-muted opacity-0 hover:text-red-400 group-hover:opacity-100"
+                  className="shrink-0 rounded p-1.5 text-th-text-muted opacity-0 hover:text-red-400 group-hover:opacity-100"
                 >
                   <Trash2 className="h-3 w-3" />
                 </button>
@@ -291,16 +428,79 @@ export function ProjectsTab() {
               <button onClick={() => setActiveId(null)} className="px-3 py-3 text-xs text-cyan-400">&larr; Back</button>
             </div>
 
-            {/* Project header */}
-            <div className={`border-b border-th-border px-6 py-4 ${detail.status === 'completed' ? 'opacity-70' : ''}`}>
-              <input
-                value={detail.title}
-                onChange={(e) => updateField('title', e.target.value)}
-                placeholder="Project title"
-                className="w-full bg-transparent text-lg font-semibold text-th-text outline-none placeholder-th-text-muted"
-              />
+            {/* Cover gradient strip */}
+            <div
+              className="h-20 w-full"
+              style={{ background: `linear-gradient(135deg, ${detailColorHex}35 0%, ${detailColorHex}10 50%, transparent 100%)` }}
+            />
 
-              <div className="mt-2 flex flex-wrap items-center gap-2">
+            {/* Project header */}
+            <div className={`border-b border-th-border px-6 pt-4 pb-4 -mt-10 relative ${detail.status === 'completed' ? 'opacity-80' : ''}`}>
+              {/* Emoji + color selector row */}
+              <div className="flex items-start gap-3 mb-3">
+                <div className="relative" ref={emojiPickerRef}>
+                  <button
+                    onClick={() => setShowEmojiPicker((v) => !v)}
+                    className="flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-th-border bg-th-surface shadow-sm hover:border-th-border-strong transition-colors"
+                    style={{ borderColor: detail.icon ? 'transparent' : undefined, background: detail.icon ? `${detailColorHex}15` : undefined }}
+                    title="Set project icon"
+                  >
+                    {detail.icon ? (
+                      <span className="text-3xl leading-none">{detail.icon}</span>
+                    ) : (
+                      <Smile className="h-6 w-6 text-th-text-muted" />
+                    )}
+                  </button>
+
+                  {showEmojiPicker && (
+                    <div className="absolute left-0 top-full mt-2 z-30 w-72 max-h-80 overflow-y-auto rounded-lg border border-th-border bg-th-surface shadow-xl">
+                      <div className="flex items-center justify-between border-b border-th-border px-3 py-2">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-th-text-secondary">Pick icon</span>
+                        {detail.icon && (
+                          <button onClick={() => handleSetIcon(null)} className="text-[10px] text-th-text-muted hover:text-red-400">Clear</button>
+                        )}
+                      </div>
+                      {EMOJI_CATEGORIES.map((cat) => (
+                        <div key={cat.name} className="px-3 py-2">
+                          <div className="mb-1 text-[10px] text-th-text-muted">{cat.name}</div>
+                          <div className="flex flex-wrap gap-1">
+                            {cat.emojis.map((e) => (
+                              <button
+                                key={e}
+                                onClick={() => handleSetIcon(e)}
+                                className="flex h-7 w-7 items-center justify-center rounded hover:bg-th-elevated text-lg"
+                              >{e}</button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <input
+                    value={detail.title}
+                    onChange={(e) => updateField('title', e.target.value)}
+                    placeholder="Project title"
+                    className="w-full bg-transparent text-xl font-semibold text-th-text outline-none placeholder-th-text-muted"
+                  />
+                  {/* Color selector */}
+                  <div className="mt-2 flex items-center gap-1.5">
+                    {PROJECT_COLORS.map((c) => (
+                      <button
+                        key={c.name}
+                        onClick={() => handleSetColor(c.name)}
+                        title={c.name}
+                        className={`h-4 w-4 rounded-full transition-transform hover:scale-110 ${detail.color === c.name ? 'ring-2 ring-offset-2 ring-offset-th-surface' : ''}`}
+                        style={{ backgroundColor: c.hex, ...((detail.color === c.name) ? { boxShadow: `0 0 0 2px ${c.hex}` } : {}) }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
                 <select
                   value={detail.status}
                   onChange={(e) => { updateField('status', e.target.value); trackActivity('project_status_changed', { projectId: detail.id, status: e.target.value }); }}
@@ -339,6 +539,64 @@ export function ProjectsTab() {
               </div>
             </div>
 
+            {/* AI Digest Card */}
+            <div className="border-b border-th-border px-6 py-3">
+              <div className="rounded-xl border border-th-border bg-gradient-to-br from-th-surface to-th-elevated/30 p-4">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-purple-400" />
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-th-text-secondary">AI Insights</h3>
+                    {digest && <HealthBadge health={digest.health} />}
+                  </div>
+                  <button
+                    onClick={fetchDigest}
+                    disabled={digestLoading}
+                    className="flex items-center gap-1 rounded-md px-2 py-1 text-[10px] text-th-text-muted hover:bg-th-elevated hover:text-th-text-secondary disabled:opacity-50"
+                    title={digest ? 'Refresh' : 'Generate insights'}
+                  >
+                    <RefreshCw className={`h-3 w-3 ${digestLoading ? 'animate-spin' : ''}`} />
+                    {digest ? 'Refresh' : 'Analyze'}
+                  </button>
+                </div>
+
+                {digestLoading && !digest && (
+                  <div className="space-y-2">
+                    <div className="h-3 w-3/4 rounded bg-th-elevated animate-pulse" />
+                    <div className="h-3 w-full rounded bg-th-elevated animate-pulse" />
+                    <div className="h-3 w-5/6 rounded bg-th-elevated animate-pulse" />
+                  </div>
+                )}
+
+                {!digestLoading && !digest && (
+                  <p className="text-xs text-th-text-muted">
+                    Get an AI-generated health check, narrative summary, and next action for this project.
+                  </p>
+                )}
+
+                {digest && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-th-text leading-relaxed">{digest.summary}</p>
+                    {digest.nextAction && (
+                      <div className="mt-2 rounded-lg bg-th-elevated/60 px-3 py-2">
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-th-text-muted mb-0.5">Next action</div>
+                        <p className="text-sm text-th-text-secondary">{digest.nextAction}</p>
+                      </div>
+                    )}
+                    {digest.blockers && digest.blockers.length > 0 && (
+                      <div className="mt-2">
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-th-text-muted mb-0.5">Blockers</div>
+                        <ul className="list-disc pl-4 space-y-0.5">
+                          {digest.blockers.map((b, i) => (
+                            <li key={i} className="text-sm text-th-text-secondary">{b}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Description */}
             <div className="border-b border-th-border px-6 py-3">
               <textarea
@@ -352,32 +610,41 @@ export function ProjectsTab() {
 
             {/* Tasks */}
             <div className="border-b border-th-border px-6 py-4">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-th-text-secondary">
-                  Tasks {detail.tasks.length > 0 && `(${detail.tasks.filter((t) => t.status === 'completed').length}/${detail.tasks.length})`}
-                </h3>
-                {detail.tasks.some((t) => t.status === 'completed') && (
-                  <button
-                    onClick={() => setHideCompleted(!hideCompleted)}
-                    className="flex items-center gap-1 text-[10px] text-th-text-muted hover:text-th-text-secondary"
-                  >
-                    <Filter className="h-3 w-3" />
-                    {hideCompleted ? 'Show completed' : 'Hide completed'}
-                  </button>
-                )}
-              </div>
-
-              {/* Progress bar */}
-              {detail.tasks.length > 0 && (
-                <div className="mb-3 h-2 w-full rounded-full bg-th-border overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${
-                      detail.tasks.every((t) => t.status === 'completed') ? 'bg-emerald-400' : 'bg-cyan-400'
-                    }`}
-                    style={{ width: `${Math.round((detail.tasks.filter((t) => t.status === 'completed').length / detail.tasks.length) * 100)}%` }}
-                  />
+              <div className="flex items-center justify-between mb-3 gap-2">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-th-text-secondary">
+                    Tasks {detail.tasks.length > 0 && `(${detail.tasks.filter((t) => t.status === 'completed').length}/${detail.tasks.length})`}
+                  </h3>
+                  {detail.tasks.length > 0 && (
+                    <ProgressRing
+                      progress={Math.round((detail.tasks.filter((t) => t.status === 'completed').length / detail.tasks.length) * 100)}
+                      size={22}
+                      stroke={2.5}
+                      color={detail.tasks.every((t) => t.status === 'completed') ? '#10b981' : detailColorHex}
+                    />
+                  )}
                 </div>
-              )}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleGeneratePlan}
+                    disabled={planLoading || !detail.title}
+                    className="flex items-center gap-1 rounded-md bg-purple-600/15 px-2 py-1 text-[11px] text-purple-400 hover:bg-purple-600/25 disabled:opacity-40"
+                    title="Generate tasks from project goal using AI"
+                  >
+                    <Sparkles className={`h-3 w-3 ${planLoading ? 'animate-pulse' : ''}`} />
+                    {planLoading ? 'Generating…' : 'AI Plan'}
+                  </button>
+                  {detail.tasks.some((t) => t.status === 'completed') && (
+                    <button
+                      onClick={() => setHideCompleted(!hideCompleted)}
+                      className="flex items-center gap-1 text-[10px] text-th-text-muted hover:text-th-text-secondary"
+                    >
+                      <Filter className="h-3 w-3" />
+                      {hideCompleted ? 'Show' : 'Hide'} done
+                    </button>
+                  )}
+                </div>
+              </div>
 
               <div className="space-y-1">
                 {detail.tasks
