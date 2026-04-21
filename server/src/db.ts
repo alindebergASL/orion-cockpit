@@ -222,7 +222,8 @@ export function initDb(): void {
   } catch { /* column already exists */ }
 
   // Add notes metadata columns (safe migration)
-  try { d.exec("ALTER TABLE notes ADD COLUMN created_at TEXT DEFAULT (datetime('now'))"); } catch { /* exists */ }
+  // Note: DEFAULT (datetime('now')) is not allowed in ALTER TABLE — use NULL default, app sets value on INSERT
+  try { d.exec("ALTER TABLE notes ADD COLUMN created_at TEXT DEFAULT NULL"); } catch { /* exists */ }
   try { d.exec("ALTER TABLE notes ADD COLUMN tags TEXT DEFAULT ''"); } catch { /* exists */ }
   try { d.exec("ALTER TABLE notes ADD COLUMN folder TEXT DEFAULT NULL"); } catch { /* exists */ }
   try { d.exec("ALTER TABLE notes ADD COLUMN color TEXT DEFAULT NULL"); } catch { /* exists */ }
