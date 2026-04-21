@@ -43,6 +43,11 @@ export interface Note {
   id: number;
   title: string;
   content: string;
+  tags: string[];
+  folder?: string | null;
+  color?: string | null;
+  isPinned: boolean;
+  createdAt: string;
   updatedAt: string;
 }
 

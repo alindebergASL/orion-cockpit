@@ -182,17 +182,25 @@ class ApiClient {
     return this.request('/api/notes');
   }
 
-  async createNote(title: string, content: string): Promise<Note> {
+  async getNoteFolders(): Promise<string[]> {
+    return this.request('/api/notes/folders');
+  }
+
+  async getNoteTags(): Promise<string[]> {
+    return this.request('/api/notes/tags');
+  }
+
+  async createNote(title: string, content: string, opts?: { tags?: string[]; folder?: string; color?: string }): Promise<Note> {
     return this.request('/api/notes', {
       method: 'POST',
-      body: JSON.stringify({ title, content }),
+      body: JSON.stringify({ title, content, ...opts }),
     });
   }
 
-  async updateNote(id: number, title: string, content: string): Promise<void> {
+  async updateNote(id: number, data: Partial<{ title: string; content: string; tags: string[]; folder: string | null; color: string | null; isPinned: boolean }>): Promise<void> {
     await this.request(`/api/notes/${id}`, {
       method: 'PUT',
-      body: JSON.stringify({ title, content }),
+      body: JSON.stringify(data),
     });
   }
 

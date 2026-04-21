@@ -220,4 +220,11 @@ export function initDb(): void {
   try {
     d.exec("ALTER TABLE projects ADD COLUMN color TEXT DEFAULT 'slate'");
   } catch { /* column already exists */ }
+
+  // Add notes metadata columns (safe migration)
+  try { d.exec("ALTER TABLE notes ADD COLUMN created_at TEXT DEFAULT (datetime('now'))"); } catch { /* exists */ }
+  try { d.exec("ALTER TABLE notes ADD COLUMN tags TEXT DEFAULT ''"); } catch { /* exists */ }
+  try { d.exec("ALTER TABLE notes ADD COLUMN folder TEXT DEFAULT NULL"); } catch { /* exists */ }
+  try { d.exec("ALTER TABLE notes ADD COLUMN color TEXT DEFAULT NULL"); } catch { /* exists */ }
+  try { d.exec("ALTER TABLE notes ADD COLUMN is_pinned INTEGER DEFAULT 0"); } catch { /* exists */ }
 }
