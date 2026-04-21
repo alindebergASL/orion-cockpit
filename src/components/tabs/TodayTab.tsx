@@ -235,33 +235,80 @@ export function TodayTab() {
 
   const [aiBriefing, setAiBriefing] = useState<string | null>(null);
   const [aiBriefingLoading, setAiBriefingLoading] = useState(false);
+  const [weeklySummary, setWeeklySummary] = useState<string | null>(null);
+  const [weeklySummaryLoading, setWeeklySummaryLoading] = useState(false);
+  const autoBriefingTriggered = useRef(false);
 
   const handleAiBriefing = useCallback(async () => {
     setAiBriefingLoading(true);
+    setAiBriefing('');
     try {
       const eventList = events
         .filter((e) => !e.allDay && isSameDay(e.start, date))
         .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
         .map((e) => ({ title: e.title, time: formatEventTime(e) }));
 
-      const result = await api.aiGenerateBriefing({
-        weather: weather ? {
-          tempF: weather.current.tempF,
-          description: weather.current.description,
-          feelsLikeF: weather.current.feelsLikeF,
-        } : undefined,
-        events: eventList,
-        taskCount: tasks.filter((t) => t.status !== 'completed').length,
-        displayName: user?.displayName?.split(' ')[0],
-        dayOfWeek: date.toLocaleDateString([], { weekday: 'long' }),
-      });
-      setAiBriefing(result.briefing);
+      await api.aiGenerateBriefing(
+        {
+          weather: weather ? {
+            tempF: weather.current.tempF,
+            description: weather.current.description,
+            feelsLikeF: weather.current.feelsLikeF,
+          } : undefined,
+          events: eventList,
+          taskCount: tasks.filter((t) => t.status !== 'completed').length,
+          displayName: user?.displayName?.split(' ')[0],
+          dayOfWeek: date.toLocaleDateString([], { weekday: 'long' }),
+        },
+        (chunk) => setAiBriefing((prev) => (prev ?? '') + chunk),
+      );
     } catch {
-      // fall back silently
+      setAiBriefing(null);
     } finally {
       setAiBriefingLoading(false);
     }
   }, [events, weather, tasks, date, user]);
+
+  // Auto-generate briefing on first load when viewing today and weather is ready
+  useEffect(() => {
+    if (autoBriefingTriggered.current) return;
+    if (!isViewingToday || loading || !weather) return;
+    autoBriefingTriggered.current = true;
+    handleAiBriefing();
+  }, [isViewingToday, loading, weather, handleAiBriefing]);
+
+  const handleWeeklySummary = useCallback(async () => {
+    setWeeklySummaryLoading(true);
+    setWeeklySummary('');
+    try {
+      // Build week range (Sun-Sat around current date)
+      const start = new Date(date); start.setDate(date.getDate() - date.getDay());
+      const end = new Date(start); end.setDate(start.getDate() + 7);
+      const weekEvents = events
+        .filter((e) => {
+          const d = new Date(e.start);
+          return d >= start && d < end;
+        })
+        .map((e) => ({
+          title: e.title,
+          day: new Date(e.start).toLocaleDateString([], { weekday: 'short' }),
+        }));
+      const weekCompletedTasks = tasks
+        .filter((t) => t.status === 'completed')
+        .map((t) => t.title)
+        .slice(0, 20);
+
+      await api.aiWeeklySummary(
+        weekKey,
+        { events: weekEvents, completedTasks: weekCompletedTasks },
+        (chunk) => setWeeklySummary((prev) => (prev ?? '') + chunk),
+      );
+    } catch {
+      setWeeklySummary(null);
+    } finally {
+      setWeeklySummaryLoading(false);
+    }
+  }, [date, events, tasks, weekKey]);
 
   const greeting = getGreeting();
   const GreetingIcon = greeting.icon;
@@ -423,12 +470,45 @@ export function TodayTab() {
           </section>
         ) : (
           <section className="mb-5">
-            <div className="flex items-center gap-2 mb-2">
-              <BookOpen className="h-4 w-4 text-cyan-400" />
-              <h3 className="text-sm font-semibold text-th-text-secondary">
-                Weekly Note <span className="font-normal text-th-text-muted">{getWeekRange(date)}</span>
-              </h3>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-cyan-400" />
+                <h3 className="text-sm font-semibold text-th-text-secondary">
+                  Weekly Note <span className="font-normal text-th-text-muted">{getWeekRange(date)}</span>
+                </h3>
+              </div>
+              <button
+                onClick={handleWeeklySummary}
+                disabled={weeklySummaryLoading}
+                className={`flex items-center gap-1 rounded-md border border-th-border px-2 py-1 text-[11px] ${
+                  weeklySummaryLoading ? 'text-cyan-400 animate-pulse' : 'text-th-text-secondary hover:bg-th-elevated hover:text-cyan-400'
+                }`}
+                title="AI weekly recap"
+              >
+                <Sparkles className="h-3 w-3" />
+                AI Recap
+              </button>
             </div>
+            {weeklySummary !== null && (
+              <div className="mb-2 rounded-lg border border-cyan-600/30 bg-cyan-600/5 px-4 py-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="flex items-center gap-1.5 text-xs font-medium text-cyan-400">
+                    <Sparkles className={`h-3 w-3 ${weeklySummaryLoading ? 'animate-pulse' : ''}`} />
+                    Weekly Recap
+                    {weeklySummaryLoading && <span className="text-th-text-muted font-normal">· streaming</span>}
+                  </span>
+                  <button
+                    onClick={() => setWeeklySummary(null)}
+                    className="rounded px-1 text-xs text-th-text-muted hover:text-th-text-secondary"
+                  >
+                    ×
+                  </button>
+                </div>
+                <p className="text-sm text-th-text-secondary leading-relaxed whitespace-pre-wrap">
+                  {weeklySummary || <span className="text-th-text-muted italic">waiting for response...</span>}
+                </p>
+              </div>
+            )}
             <textarea
               value={weeklyNote}
               onChange={(e) => handleWeeklyNoteChange(e.target.value)}

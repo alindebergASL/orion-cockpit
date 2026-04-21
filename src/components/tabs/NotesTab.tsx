@@ -201,13 +201,15 @@ export function NotesTab() {
   const handleAiSummarize = useCallback(async () => {
     if (!activeNote) return;
     setAiLoading('summarize');
-    setAiResult(null);
+    setAiResult({ type: 'summary', text: '' });
     setShowAiMenu(false);
     try {
-      const result = await api.aiSummarizeNote(activeNote.id);
-      setAiResult({ type: 'summary', text: result.summary });
+      await api.aiSummarizeNote(activeNote.id, (chunk) => {
+        setAiResult((prev) => prev ? { ...prev, text: prev.text + chunk } : null);
+      });
     } catch {
       showToast('Failed to summarize note', 'error');
+      setAiResult(null);
     } finally {
       setAiLoading(null);
     }
@@ -216,21 +218,30 @@ export function NotesTab() {
   const handleAiExpand = useCallback(async () => {
     if (!activeNote) return;
     setAiLoading('expand');
-    setAiResult(null);
+    setAiResult({ type: 'expanded', text: '' });
     setShowAiMenu(false);
     try {
-      const result = await api.aiExpandNote(activeNote.id);
-      setAiResult({ type: 'expanded', text: result.expanded });
+      await api.aiExpandNote(activeNote.id, (chunk) => {
+        setAiResult((prev) => prev ? { ...prev, text: prev.text + chunk } : null);
+      });
     } catch {
       showToast('Failed to expand note', 'error');
+      setAiResult(null);
     } finally {
       setAiLoading(null);
     }
   }, [activeNote]);
 
-  const applyAiResult = useCallback(() => {
+  const replaceWithAiResult = useCallback(() => {
     if (!aiResult || !activeNote) return;
     updateField('content', aiResult.text);
+    setAiResult(null);
+  }, [aiResult, activeNote, updateField]);
+
+  const appendAiResult = useCallback(() => {
+    if (!aiResult || !activeNote) return;
+    const separator = activeNote.content.trim() ? '\n\n' : '';
+    updateField('content', activeNote.content + separator + aiResult.text);
     setAiResult(null);
   }, [aiResult, activeNote, updateField]);
 
@@ -518,18 +529,27 @@ export function NotesTab() {
 
             {/* AI Result */}
             {aiResult && (
-              <div className="border-t border-cyan-600/30 bg-cyan-600/5 px-6 py-3">
-                <div className="flex items-center justify-between mb-2">
+              <div className="border-t border-cyan-600/30 bg-cyan-600/5 px-6 py-3 max-h-64 overflow-y-auto">
+                <div className="flex items-center justify-between mb-2 sticky top-0 bg-th-surface/0">
                   <span className="flex items-center gap-1.5 text-xs font-medium text-cyan-400">
-                    <Sparkles className="h-3 w-3" />
+                    <Sparkles className={`h-3 w-3 ${aiLoading ? 'animate-pulse' : ''}`} />
                     {aiResult.type === 'summary' ? 'Summary' : 'Expanded'}
+                    {aiLoading && <span className="text-th-text-muted font-normal">· streaming</span>}
                   </span>
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={applyAiResult}
-                      className="rounded px-2 py-0.5 text-[11px] bg-cyan-600 text-white hover:bg-cyan-500"
+                      onClick={appendAiResult}
+                      disabled={!aiResult.text || !!aiLoading}
+                      className="rounded border border-cyan-600 px-2 py-0.5 text-[11px] text-cyan-400 hover:bg-cyan-600/10 disabled:opacity-40"
                     >
-                      Replace content
+                      Append
+                    </button>
+                    <button
+                      onClick={replaceWithAiResult}
+                      disabled={!aiResult.text || !!aiLoading}
+                      className="rounded px-2 py-0.5 text-[11px] bg-cyan-600 text-white hover:bg-cyan-500 disabled:opacity-40"
+                    >
+                      Replace
                     </button>
                     <button
                       onClick={() => setAiResult(null)}
@@ -539,7 +559,17 @@ export function NotesTab() {
                     </button>
                   </div>
                 </div>
-                <p className="text-sm text-th-text-secondary leading-relaxed whitespace-pre-wrap">{aiResult.text}</p>
+                {aiResult.type === 'expanded' ? (
+                  <div className="prose prose-invert prose-sm max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {aiResult.text || '*waiting for response...*'}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="text-sm text-th-text-secondary leading-relaxed whitespace-pre-wrap">
+                    {aiResult.text || <span className="text-th-text-muted italic">waiting for response...</span>}
+                  </p>
+                )}
               </div>
             )}
 

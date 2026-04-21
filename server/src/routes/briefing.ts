@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
-import { openclawClient } from '../services/openclaw.js';
+import { streamAiText } from '../services/ai-stream.js';
 
 export const briefingRouter = Router();
 
@@ -17,25 +17,17 @@ briefingRouter.post('/generate', async (req, res) => {
     ? `Today's events (${events.length}): ${events.map((e: { title: string; time: string }) => `${e.title} at ${e.time}`).join(', ')}.`
     : 'No events scheduled today.';
 
-  const prompt = `Generate a warm, personalized 2-3 sentence morning briefing for ${displayName || 'the user'}.
+  const userPrompt = `Generate a warm, personalized 2-3 sentence morning briefing for ${displayName || 'the user'}.
 Today is ${dayOfWeek || new Date().toLocaleDateString([], { weekday: 'long' })}.
 ${weatherCtx}
 ${eventsCtx}
 Open tasks: ${taskCount ?? 0}.
 
-Be conversational and encouraging. Mention the weather naturally. If it's a special day (Monday, Friday, weekend), acknowledge it. Keep it concise.
+Be conversational and encouraging. Mention the weather naturally. If it's a special day (Monday, Friday, weekend), acknowledge it. Keep it concise. Respond with only the briefing text — no preamble, no JSON, no code fences.`;
 
-Return ONLY valid JSON (no markdown, no code fences):
-{ "briefing": "your briefing text here" }`;
-
-  try {
-    const raw = await openclawClient.chatOnce([
-      { role: 'system', content: 'You are a friendly personal assistant. Return only valid JSON.' },
-      { role: 'user', content: prompt },
-    ]);
-    const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-    res.json(JSON.parse(cleaned));
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to generate briefing', detail: String(err) });
-  }
+  await streamAiText(
+    res,
+    'You are a friendly personal assistant. Respond with only the briefing text.',
+    userPrompt,
+  );
 });

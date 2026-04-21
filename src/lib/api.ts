@@ -120,6 +120,52 @@ class ApiClient {
     this.abortController = null;
   }
 
+  // ── Streaming AI text helper ─────────────────────────────
+
+  async streamAiText(
+    path: string,
+    body: unknown,
+    onChunk: (text: string) => void,
+  ): Promise<void> {
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: this.headers(),
+      body: JSON.stringify(body ?? {}),
+    });
+
+    if (!res.ok) {
+      if (res.status === 401 && this._onUnauthorized) this._onUnauthorized();
+      throw new Error(`AI stream error ${res.status}: ${await res.text()}`);
+    }
+
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') return;
+
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.type === 'text' && parsed.content) onChunk(parsed.content);
+          if (parsed.type === 'error') throw new Error(parsed.error);
+        } catch (err) {
+          if (err instanceof Error && err.message !== data) throw err;
+        }
+      }
+    }
+  }
+
   // ── Calendar ─────────────────────────────────────────────
 
   async getCalendarEvents(): Promise<{ events: CalendarEvent[]; syncedAt: string | null }> {
@@ -220,12 +266,12 @@ class ApiClient {
     await this.request(`/api/notes/${id}`, { method: 'DELETE' });
   }
 
-  async aiSummarizeNote(noteId: number): Promise<{ summary: string }> {
-    return this.request(`/api/notes/${noteId}/ai-summarize`, { method: 'POST' });
+  async aiSummarizeNote(noteId: number, onChunk: (text: string) => void): Promise<void> {
+    return this.streamAiText(`/api/notes/${noteId}/ai-summarize`, {}, onChunk);
   }
 
-  async aiExpandNote(noteId: number): Promise<{ expanded: string }> {
-    return this.request(`/api/notes/${noteId}/ai-expand`, { method: 'POST' });
+  async aiExpandNote(noteId: number, onChunk: (text: string) => void): Promise<void> {
+    return this.streamAiText(`/api/notes/${noteId}/ai-expand`, {}, onChunk);
   }
 
   // ── Users (admin) ────────────────────────────────────────
@@ -465,17 +511,25 @@ class ApiClient {
 
   // ── Weather ───────────────────────────────────────────────
 
-  async aiGenerateBriefing(context: {
-    weather?: { tempF: string; description: string; feelsLikeF: string };
-    events?: { title: string; time: string }[];
-    taskCount?: number;
-    displayName?: string;
-    dayOfWeek?: string;
-  }): Promise<{ briefing: string }> {
-    return this.request('/api/briefing/generate', {
-      method: 'POST',
-      body: JSON.stringify(context),
-    });
+  async aiGenerateBriefing(
+    context: {
+      weather?: { tempF: string; description: string; feelsLikeF: string };
+      events?: { title: string; time: string }[];
+      taskCount?: number;
+      displayName?: string;
+      dayOfWeek?: string;
+    },
+    onChunk: (text: string) => void,
+  ): Promise<void> {
+    return this.streamAiText('/api/briefing/generate', context, onChunk);
+  }
+
+  async aiWeeklySummary(
+    week: string,
+    context: { events: { title: string; day: string }[]; completedTasks: string[] },
+    onChunk: (text: string) => void,
+  ): Promise<void> {
+    return this.streamAiText(`/api/weekly-notes/${week}/ai-summary`, context, onChunk);
   }
 
   async getWeather(): Promise<{

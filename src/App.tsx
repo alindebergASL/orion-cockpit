@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import type { TabId } from './types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -7,12 +7,13 @@ import { SearchPalette } from './components/SearchPalette';
 import { trackActivity } from './lib/activity';
 import { LoginPage } from './components/auth/LoginPage';
 import { Layout } from './components/Layout';
-import { TodayTab } from './components/tabs/TodayTab';
-import { ChatTab } from './components/tabs/ChatTab';
-import { CalendarTab } from './components/tabs/CalendarTab';
-import { TasksTab } from './components/tabs/TasksTab';
-import { NotesTab } from './components/tabs/NotesTab';
-import { ProjectsTab } from './components/tabs/ProjectsTab';
+
+const TodayTab = lazy(() => import('./components/tabs/TodayTab').then((m) => ({ default: m.TodayTab })));
+const ChatTab = lazy(() => import('./components/tabs/ChatTab').then((m) => ({ default: m.ChatTab })));
+const CalendarTab = lazy(() => import('./components/tabs/CalendarTab').then((m) => ({ default: m.CalendarTab })));
+const TasksTab = lazy(() => import('./components/tabs/TasksTab').then((m) => ({ default: m.TasksTab })));
+const NotesTab = lazy(() => import('./components/tabs/NotesTab').then((m) => ({ default: m.NotesTab })));
+const ProjectsTab = lazy(() => import('./components/tabs/ProjectsTab').then((m) => ({ default: m.ProjectsTab })));
 
 const tabComponents: Record<TabId, React.FC> = {
   today: TodayTab,
@@ -23,12 +24,31 @@ const tabComponents: Record<TabId, React.FC> = {
   projects: ProjectsTab,
 };
 
+function TabFallback() {
+  return (
+    <div className="flex h-full items-center justify-center">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-th-border-strong border-t-cyan-400" />
+    </div>
+  );
+}
+
 const tabEntries = Object.entries(tabComponents) as [TabId, React.FC][];
 const tabIds = Object.keys(tabComponents) as TabId[];
 
 function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabId>('today');
+  const [visitedTabs, setVisitedTabs] = useState<Set<TabId>>(new Set(['today']));
   const [searchOpen, setSearchOpen] = useState(false);
+
+  // Mark each activated tab as visited so lazy-loaded modules mount (and stay mounted)
+  useEffect(() => {
+    setVisitedTabs((prev) => {
+      if (prev.has(activeTab)) return prev;
+      const next = new Set(prev);
+      next.add(activeTab);
+      return next;
+    });
+  }, [activeTab]);
 
   // Keyboard shortcuts: Ctrl/Cmd + 1-5 for tabs, Ctrl/Cmd+K for search
   useEffect(() => {
@@ -62,17 +82,28 @@ function Dashboard() {
 
   const handleTabChange = (tab: TabId) => {
     setActiveTab(tab);
+    setVisitedTabs((prev) => {
+      if (prev.has(tab)) return prev;
+      const next = new Set(prev);
+      next.add(tab);
+      return next;
+    });
     trackActivity('tab_viewed', { tab });
   };
 
   return (
     <>
       <Layout activeTab={activeTab} onTabChange={handleTabChange}>
-        {tabEntries.map(([id, Component]) => (
-          <div key={id} className={id === activeTab ? 'h-full' : 'hidden'}>
-            <Component />
-          </div>
-        ))}
+        {tabEntries.map(([id, Component]) => {
+          if (!visitedTabs.has(id)) return null;
+          return (
+            <div key={id} className={id === activeTab ? 'h-full' : 'hidden'}>
+              <Suspense fallback={<TabFallback />}>
+                <Component />
+              </Suspense>
+            </div>
+          );
+        })}
       </Layout>
 
       {searchOpen && (
