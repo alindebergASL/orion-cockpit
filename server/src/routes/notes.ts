@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getDb } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
+import { openclawClient } from '../services/openclaw.js';
 
 export const notesRouter = Router();
 
@@ -100,4 +101,62 @@ notesRouter.delete('/:id', (req, res) => {
     return;
   }
   res.json({ ok: true });
+});
+
+notesRouter.post('/:id/ai-summarize', async (req, res) => {
+  const note = getDb()
+    .prepare('SELECT title, content FROM notes WHERE id = ? AND user_id = ?')
+    .get(req.params.id, req.user!.id) as { title: string; content: string } | undefined;
+
+  if (!note) { res.status(404).json({ error: 'Note not found' }); return; }
+  if (!note.content.trim()) { res.json({ summary: 'This note is empty.' }); return; }
+
+  const prompt = `Summarize the following note in 2-3 concise sentences. Capture the key points and intent.
+
+Title: ${note.title || 'Untitled'}
+Content:
+${note.content}
+
+Return ONLY valid JSON (no markdown, no code fences):
+{ "summary": "your summary here" }`;
+
+  try {
+    const raw = await openclawClient.chatOnce([
+      { role: 'system', content: 'You are a concise note summarizer. Return only valid JSON.' },
+      { role: 'user', content: prompt },
+    ]);
+    const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    res.json(JSON.parse(cleaned));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to summarize note', detail: String(err) });
+  }
+});
+
+notesRouter.post('/:id/ai-expand', async (req, res) => {
+  const note = getDb()
+    .prepare('SELECT title, content FROM notes WHERE id = ? AND user_id = ?')
+    .get(req.params.id, req.user!.id) as { title: string; content: string } | undefined;
+
+  if (!note) { res.status(404).json({ error: 'Note not found' }); return; }
+  if (!note.content.trim()) { res.json({ expanded: '' }); return; }
+
+  const prompt = `Expand the following note into well-written paragraphs. If the content has bullet points or an outline, flesh them out with detail. Preserve any existing markdown formatting and add structure where appropriate.
+
+Title: ${note.title || 'Untitled'}
+Content:
+${note.content}
+
+Return ONLY valid JSON (no markdown fences around the JSON itself):
+{ "expanded": "the expanded markdown content here" }`;
+
+  try {
+    const raw = await openclawClient.chatOnce([
+      { role: 'system', content: 'You are a skilled writer that expands notes into well-structured markdown. Return only valid JSON.' },
+      { role: 'user', content: prompt },
+    ]);
+    const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    res.json(JSON.parse(cleaned));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to expand note', detail: String(err) });
+  }
 });

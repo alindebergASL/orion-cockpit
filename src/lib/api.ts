@@ -130,6 +130,10 @@ class ApiClient {
     return this.request('/api/calendar/sync', { method: 'POST' });
   }
 
+  async aiFreeTime(): Promise<{ slots: { day: string; start: string; end: string; suggestion: string }[] }> {
+    return this.request('/api/calendar/ai-free-time', { method: 'POST' });
+  }
+
   async createCalendarEvent(data: {
     title: string;
     start: string;
@@ -214,6 +218,14 @@ class ApiClient {
 
   async deleteNote(id: number): Promise<void> {
     await this.request(`/api/notes/${id}`, { method: 'DELETE' });
+  }
+
+  async aiSummarizeNote(noteId: number): Promise<{ summary: string }> {
+    return this.request(`/api/notes/${noteId}/ai-summarize`, { method: 'POST' });
+  }
+
+  async aiExpandNote(noteId: number): Promise<{ expanded: string }> {
+    return this.request(`/api/notes/${noteId}/ai-expand`, { method: 'POST' });
   }
 
   // ── Users (admin) ────────────────────────────────────────
@@ -452,6 +464,19 @@ class ApiClient {
   }
 
   // ── Weather ───────────────────────────────────────────────
+
+  async aiGenerateBriefing(context: {
+    weather?: { tempF: string; description: string; feelsLikeF: string };
+    events?: { title: string; time: string }[];
+    taskCount?: number;
+    displayName?: string;
+    dayOfWeek?: string;
+  }): Promise<{ briefing: string }> {
+    return this.request('/api/briefing/generate', {
+      method: 'POST',
+      body: JSON.stringify(context),
+    });
+  }
 
   async getWeather(): Promise<{
     current: { tempF: string; description: string; humidity: string; feelsLikeF: string };

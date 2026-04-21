@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   BookOpen,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../lib/api';
@@ -232,6 +233,36 @@ export function TodayTab() {
   const goToday = () => setDate(new Date());
   const navigateTab = (tab: string) => window.dispatchEvent(new CustomEvent('orion-navigate', { detail: { tab } }));
 
+  const [aiBriefing, setAiBriefing] = useState<string | null>(null);
+  const [aiBriefingLoading, setAiBriefingLoading] = useState(false);
+
+  const handleAiBriefing = useCallback(async () => {
+    setAiBriefingLoading(true);
+    try {
+      const eventList = events
+        .filter((e) => !e.allDay && isSameDay(e.start, date))
+        .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+        .map((e) => ({ title: e.title, time: formatEventTime(e) }));
+
+      const result = await api.aiGenerateBriefing({
+        weather: weather ? {
+          tempF: weather.current.tempF,
+          description: weather.current.description,
+          feelsLikeF: weather.current.feelsLikeF,
+        } : undefined,
+        events: eventList,
+        taskCount: tasks.filter((t) => t.status !== 'completed').length,
+        displayName: user?.displayName?.split(' ')[0],
+        dayOfWeek: date.toLocaleDateString([], { weekday: 'long' }),
+      });
+      setAiBriefing(result.briefing);
+    } catch {
+      // fall back silently
+    } finally {
+      setAiBriefingLoading(false);
+    }
+  }, [events, weather, tasks, date, user]);
+
   const greeting = getGreeting();
   const GreetingIcon = greeting.icon;
   const todayEvents = events.filter((e) => isSameDay(e.start, date));
@@ -298,8 +329,20 @@ export function TodayTab() {
 
         {/* Briefing (today only) */}
         {briefing && (
-          <div className="mb-5 rounded-lg border border-th-border bg-th-surface px-4 py-3 text-sm text-th-text-secondary leading-relaxed">
-            {briefing}
+          <div className="mb-5 rounded-lg border border-th-border bg-th-surface px-4 py-3">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm text-th-text-secondary leading-relaxed flex-1">
+                {aiBriefing || briefing}
+              </p>
+              <button
+                onClick={handleAiBriefing}
+                disabled={aiBriefingLoading}
+                className={`shrink-0 rounded p-1 ${aiBriefingLoading ? 'text-cyan-400 animate-pulse' : 'text-th-text-muted hover:text-cyan-400'}`}
+                title="AI Briefing"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         )}
 

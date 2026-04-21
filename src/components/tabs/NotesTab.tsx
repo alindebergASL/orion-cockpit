@@ -13,6 +13,7 @@ import {
   ChevronDown,
   ChevronRight,
   Palette,
+  Sparkles,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -192,6 +193,47 @@ export function NotesTab() {
   // Word count
   const wordCount = activeNote ? activeNote.content.split(/\s+/).filter(Boolean).length : 0;
 
+  // AI features
+  const [aiLoading, setAiLoading] = useState<'summarize' | 'expand' | null>(null);
+  const [aiResult, setAiResult] = useState<{ type: 'summary' | 'expanded'; text: string } | null>(null);
+  const [showAiMenu, setShowAiMenu] = useState(false);
+
+  const handleAiSummarize = useCallback(async () => {
+    if (!activeNote) return;
+    setAiLoading('summarize');
+    setAiResult(null);
+    setShowAiMenu(false);
+    try {
+      const result = await api.aiSummarizeNote(activeNote.id);
+      setAiResult({ type: 'summary', text: result.summary });
+    } catch {
+      showToast('Failed to summarize note', 'error');
+    } finally {
+      setAiLoading(null);
+    }
+  }, [activeNote]);
+
+  const handleAiExpand = useCallback(async () => {
+    if (!activeNote) return;
+    setAiLoading('expand');
+    setAiResult(null);
+    setShowAiMenu(false);
+    try {
+      const result = await api.aiExpandNote(activeNote.id);
+      setAiResult({ type: 'expanded', text: result.expanded });
+    } catch {
+      showToast('Failed to expand note', 'error');
+    } finally {
+      setAiLoading(null);
+    }
+  }, [activeNote]);
+
+  const applyAiResult = useCallback(() => {
+    if (!aiResult || !activeNote) return;
+    updateField('content', aiResult.text);
+    setAiResult(null);
+  }, [aiResult, activeNote, updateField]);
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -355,6 +397,32 @@ export function NotesTab() {
                     </div>
                   )}
                 </div>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowAiMenu(!showAiMenu)}
+                    disabled={!!aiLoading}
+                    className={`rounded p-1.5 ${aiLoading ? 'text-cyan-400 animate-pulse' : 'text-th-text-muted hover:text-cyan-400'}`}
+                    title="AI Actions"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                  </button>
+                  {showAiMenu && (
+                    <div className="absolute right-0 top-full mt-1 z-20 w-36 rounded-lg border border-th-border bg-th-surface shadow-lg py-1">
+                      <button
+                        onClick={handleAiSummarize}
+                        className="block w-full px-3 py-1.5 text-left text-xs text-th-text hover:bg-th-elevated"
+                      >
+                        Summarize
+                      </button>
+                      <button
+                        onClick={handleAiExpand}
+                        className="block w-full px-3 py-1.5 text-left text-xs text-th-text hover:bg-th-elevated"
+                      >
+                        Expand
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <button
                   onClick={() => setPreviewMode(!previewMode)}
                   className={`rounded p-1.5 ${previewMode ? 'text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
@@ -447,6 +515,33 @@ export function NotesTab() {
                 />
               )}
             </div>
+
+            {/* AI Result */}
+            {aiResult && (
+              <div className="border-t border-cyan-600/30 bg-cyan-600/5 px-6 py-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="flex items-center gap-1.5 text-xs font-medium text-cyan-400">
+                    <Sparkles className="h-3 w-3" />
+                    {aiResult.type === 'summary' ? 'Summary' : 'Expanded'}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={applyAiResult}
+                      className="rounded px-2 py-0.5 text-[11px] bg-cyan-600 text-white hover:bg-cyan-500"
+                    >
+                      Replace content
+                    </button>
+                    <button
+                      onClick={() => setAiResult(null)}
+                      className="rounded p-0.5 text-th-text-muted hover:text-th-text-secondary"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+                <p className="text-sm text-th-text-secondary leading-relaxed whitespace-pre-wrap">{aiResult.text}</p>
+              </div>
+            )}
 
             {/* Footer */}
             <div className="flex items-center justify-between border-t border-th-border px-6 py-1.5 text-[10px] text-th-text-muted">

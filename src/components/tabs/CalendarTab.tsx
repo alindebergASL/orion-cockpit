@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Clock,
   Plus,
+  Sparkles,
 } from 'lucide-react';
 import { useChat } from '../../hooks/useChat';
 import { MessageList } from '../chat/MessageList';
@@ -51,6 +52,8 @@ export function CalendarTab() {
   const [chatOpen, setChatOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [freeTimeLoading, setFreeTimeLoading] = useState(false);
+  const [freeTimeSlots, setFreeTimeSlots] = useState<{ day: string; start: string; end: string; suggestion: string }[] | null>(null);
   const hasFetched = useRef(false);
 
   const weekStart = startOfWeek(anchor);
@@ -98,6 +101,18 @@ export function CalendarTab() {
       setShowCreateForm(false);
     } catch {
       throw new Error('Failed to create event');
+    }
+  }, []);
+
+  const handleFreeTime = useCallback(async () => {
+    setFreeTimeLoading(true);
+    try {
+      const result = await api.aiFreeTime();
+      setFreeTimeSlots(result.slots);
+    } catch {
+      showToast('Failed to find free time', 'error');
+    } finally {
+      setFreeTimeLoading(false);
     }
   }, []);
 
@@ -179,6 +194,19 @@ export function CalendarTab() {
             Chat
           </button>
 
+          {/* AI Free Time */}
+          <button
+            onClick={handleFreeTime}
+            disabled={freeTimeLoading}
+            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs transition-colors ${
+              freeTimeLoading ? 'text-cyan-400 animate-pulse' : 'text-th-text-secondary hover:bg-th-elevated hover:text-cyan-400'
+            }`}
+            title="Find free time"
+          >
+            <Sparkles className={`h-3.5 w-3.5 ${freeTimeLoading ? 'animate-spin' : ''}`} />
+            Free Time
+          </button>
+
           {/* Add event */}
           <button
             onClick={() => setShowCreateForm(true)}
@@ -234,6 +262,29 @@ export function CalendarTab() {
           </button>
         </div>
       </div>
+
+      {/* ── Free Time Results ───────────────────────────────── */}
+      {freeTimeSlots && (
+        <div className="border-b border-cyan-600/30 bg-cyan-600/5 px-4 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="flex items-center gap-1.5 text-xs font-medium text-cyan-400">
+              <Sparkles className="h-3 w-3" />
+              Free Time This Week
+            </span>
+            <button onClick={() => setFreeTimeSlots(null)} className="rounded p-0.5 text-th-text-muted hover:text-th-text-secondary">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+            {freeTimeSlots.map((slot, i) => (
+              <div key={i} className="rounded-md border border-th-border bg-th-surface px-3 py-2">
+                <p className="text-xs font-medium text-th-text">{slot.day}: {slot.start} – {slot.end}</p>
+                <p className="text-[11px] text-th-text-muted mt-0.5">{slot.suggestion}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Main area ───────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">

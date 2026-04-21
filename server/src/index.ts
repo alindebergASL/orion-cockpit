@@ -20,6 +20,7 @@ import { searchRouter } from './routes/search.js';
 import { projectsRouter } from './routes/projects.js';
 import { templatesRouter } from './routes/templates.js';
 import { weeklyNotesRouter } from './routes/weekly-notes.js';
+import { briefingRouter } from './routes/briefing.js';
 import { runAgentLoop, pushActivityDigest } from './services/agent.js';
 import { addClient } from './services/sse.js';
 import { authenticate } from './middleware/auth.js';
@@ -47,6 +48,7 @@ app.use('/api/search', searchRouter);
 app.use('/api/projects', projectsRouter);
 app.use('/api/templates', templatesRouter);
 app.use('/api/weekly-notes', weeklyNotesRouter);
+app.use('/api/briefing', briefingRouter);
 
 // SSE notification stream
 app.get('/api/notifications/stream', authenticate, (req, res) => {

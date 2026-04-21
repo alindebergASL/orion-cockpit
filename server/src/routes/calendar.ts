@@ -111,3 +111,43 @@ calendarRouter.post('/events', async (req, res) => {
     res.status(502).json({ error: message });
   }
 });
+
+calendarRouter.post('/ai-free-time', async (req, res) => {
+  const userId = req.user!.id;
+  const rows = getDb()
+    .prepare(`
+      SELECT title, start, end, all_day
+      FROM calendar_events
+      WHERE (user_id = ? OR user_id IS NULL) AND start >= date('now') AND start <= date('now', '+7 days')
+      ORDER BY start ASC
+    `)
+    .all(userId) as { title: string; start: string; end: string; all_day: number }[];
+
+  const eventList = rows.length > 0
+    ? rows.map((e) => `  - ${e.title}: ${e.start} to ${e.end}${e.all_day ? ' (all day)' : ''}`).join('\n')
+    : '  (no events this week)';
+
+  const prompt = `You are a scheduling assistant. Analyze the following calendar events for the next 7 days and identify the best 3-5 free time blocks for focus work or meetings. Consider typical working hours (8 AM - 6 PM).
+
+Events this week:
+${eventList}
+
+Return ONLY valid JSON (no markdown, no code fences):
+{
+  "slots": [
+    { "day": "Monday", "start": "10:00 AM", "end": "12:00 PM", "suggestion": "Great 2-hour block for deep work" }
+  ]
+}
+Order from most useful/largest to smallest.`;
+
+  try {
+    const raw = await openclawClient.chatOnce([
+      { role: 'system', content: 'You are a concise scheduling analyst. Return only valid JSON.' },
+      { role: 'user', content: prompt },
+    ]);
+    const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    res.json(JSON.parse(cleaned));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to find free time', detail: String(err) });
+  }
+});
