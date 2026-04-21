@@ -19,6 +19,7 @@ import remarkGfm from 'remark-gfm';
 import type { Note } from '../../types';
 import { api } from '../../lib/api';
 import { trackActivity } from '../../lib/activity';
+import { showToast } from '../Toast';
 
 const NOTE_COLORS = [
   { name: 'none', hex: '' },
@@ -117,7 +118,9 @@ export function NotesTab() {
       setActiveId(note.id);
       setPreviewMode(false);
       trackActivity('note_created', { noteId: note.id });
-    } catch { /* ignore */ }
+    } catch {
+      showToast('Failed to create note', 'error');
+    }
   }, [filterFolder]);
 
   const deleteNote = useCallback(async (id: number) => {
@@ -126,7 +129,9 @@ export function NotesTab() {
       await api.deleteNote(id);
       setNotes((prev) => prev.filter((n) => n.id !== id));
       if (activeId === id) setActiveId(null);
-    } catch { /* ignore */ }
+    } catch {
+      showToast('Failed to delete note', 'error');
+    }
   }, [activeId]);
 
   const updateField = useCallback((field: string, value: unknown) => {
