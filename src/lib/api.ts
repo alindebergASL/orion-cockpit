@@ -3,9 +3,14 @@ import type { User, CalendarEvent, Task, Note, Conversation, Insight, SearchResu
 class ApiClient {
   private token: string | null = null;
   private abortController: AbortController | null = null;
+  private _onUnauthorized: (() => void) | null = null;
 
   setToken(token: string | null): void {
     this.token = token;
+  }
+
+  onUnauthorized(handler: () => void): void {
+    this._onUnauthorized = handler;
   }
 
   private headers(): Record<string, string> {
@@ -20,6 +25,9 @@ class ApiClient {
       headers: { ...this.headers(), ...(opts?.headers as Record<string, string>) },
     });
     if (!res.ok) {
+      if (res.status === 401 && this._onUnauthorized) {
+        this._onUnauthorized();
+      }
       const body = await res.text();
       let message: string;
       try {
