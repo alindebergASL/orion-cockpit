@@ -147,10 +147,17 @@ class ApiClient {
     return this.request('/api/tasks/sync', { method: 'POST' });
   }
 
-  async createTask(title: string): Promise<Task> {
+  async createTask(title: string, opts?: { priority?: string; dueDate?: string; list?: string; description?: string }): Promise<Task> {
     return this.request('/api/tasks', {
       method: 'POST',
-      body: JSON.stringify({ title }),
+      body: JSON.stringify({ title, ...opts }),
+    });
+  }
+
+  async updateTask(id: number | string, data: { title?: string; description?: string; priority?: string; dueDate?: string }): Promise<Task> {
+    return this.request(`/api/tasks/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
     });
   }
 
@@ -159,6 +166,14 @@ class ApiClient {
       method: 'PUT',
       body: JSON.stringify({ status }),
     });
+  }
+
+  async aiPrioritizeTasks(): Promise<{ prioritized: { id: number | string; title: string; suggestedPriority: string; reasoning: string }[] }> {
+    return this.request('/api/tasks/ai-prioritize', { method: 'POST' });
+  }
+
+  async aiSuggestNextTask(): Promise<{ taskId: number | string | null; title: string | null; reasoning: string }> {
+    return this.request('/api/tasks/ai-suggest', { method: 'POST' });
   }
 
   // ── Notes ────────────────────────────────────────────────
