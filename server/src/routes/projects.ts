@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { getDb } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
 import { openclawClient } from '../services/openclaw.js';
+import { streamAiText } from '../services/ai-stream.js';
 
 export const projectsRouter = Router();
 
@@ -62,6 +63,10 @@ projectsRouter.get('/:id', (req, res) => {
     .prepare('SELECT id, content, created_at FROM project_updates WHERE project_id = ? ORDER BY created_at DESC LIMIT 20')
     .all(project.id) as Record<string, unknown>[];
 
+  const notes = getDb()
+    .prepare('SELECT id, title, content, created_at, updated_at FROM project_notes WHERE project_id = ? ORDER BY updated_at DESC')
+    .all(project.id) as Record<string, unknown>[];
+
   res.json({
     id: project.id,
     title: project.title,
@@ -85,6 +90,13 @@ projectsRouter.get('/:id', (req, res) => {
       id: u.id,
       content: u.content,
       createdAt: u.created_at,
+    })),
+    notes: notes.map((n) => ({
+      id: n.id,
+      title: n.title,
+      content: n.content,
+      createdAt: n.created_at,
+      updatedAt: n.updated_at,
     })),
   });
 });
@@ -347,4 +359,82 @@ Make tasks specific and ordered logically. Keep language casual and practical fo
   } catch (err) {
     res.status(500).json({ error: 'Failed to generate plan', detail: String(err) });
   }
+});
+
+// ── Project Notes CRUD ──────────────────────────────────
+
+projectsRouter.post('/:id/notes', (req, res) => {
+  const userId = req.user!.id;
+  const project = getDb().prepare('SELECT id FROM projects WHERE id = ? AND user_id = ?').get(req.params.id, userId);
+  if (!project) { res.status(404).json({ error: 'Project not found' }); return; }
+
+  const { title, content } = req.body;
+  const now = new Date().toISOString();
+  const result = getDb()
+    .prepare('INSERT INTO project_notes (project_id, title, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
+    .run(req.params.id, title || '', content || '', now, now);
+
+  res.status(201).json({
+    id: result.lastInsertRowid,
+    title: title || '',
+    content: content || '',
+    createdAt: now,
+    updatedAt: now,
+  });
+});
+
+projectsRouter.put('/:id/notes/:noteId', (req, res) => {
+  const userId = req.user!.id;
+  const project = getDb().prepare('SELECT id FROM projects WHERE id = ? AND user_id = ?').get(req.params.id, userId);
+  if (!project) { res.status(404).json({ error: 'Project not found' }); return; }
+
+  const { title, content } = req.body;
+  const updates: string[] = [];
+  const values: unknown[] = [];
+  if (title !== undefined) { updates.push('title = ?'); values.push(title); }
+  if (content !== undefined) { updates.push('content = ?'); values.push(content); }
+  if (updates.length === 0) { res.json({ ok: true }); return; }
+  updates.push("updated_at = datetime('now')");
+  values.push(req.params.noteId, req.params.id);
+
+  const result = getDb()
+    .prepare(`UPDATE project_notes SET ${updates.join(', ')} WHERE id = ? AND project_id = ?`)
+    .run(...values);
+
+  if (result.changes === 0) { res.status(404).json({ error: 'Note not found' }); return; }
+  res.json({ ok: true });
+});
+
+projectsRouter.delete('/:id/notes/:noteId', (req, res) => {
+  const userId = req.user!.id;
+  const project = getDb().prepare('SELECT id FROM projects WHERE id = ? AND user_id = ?').get(req.params.id, userId);
+  if (!project) { res.status(404).json({ error: 'Project not found' }); return; }
+
+  const result = getDb()
+    .prepare('DELETE FROM project_notes WHERE id = ? AND project_id = ?')
+    .run(req.params.noteId, req.params.id);
+
+  if (result.changes === 0) { res.status(404).json({ error: 'Note not found' }); return; }
+  res.json({ ok: true });
+});
+
+// AI: Summarize a project note
+projectsRouter.post('/:id/notes/:noteId/ai-summarize', async (req, res) => {
+  const userId = req.user!.id;
+  const project = getDb().prepare('SELECT id FROM projects WHERE id = ? AND user_id = ?').get(req.params.id, userId);
+  if (!project) { res.status(404).json({ error: 'Project not found' }); return; }
+
+  const note = getDb()
+    .prepare('SELECT title, content FROM project_notes WHERE id = ? AND project_id = ?')
+    .get(req.params.noteId, req.params.id) as { title: string; content: string } | undefined;
+
+  if (!note) { res.status(404).json({ error: 'Note not found' }); return; }
+
+  await streamAiText(
+    res,
+    'You are a concise note summarizer. Respond with only the summary text.',
+    note.content.trim()
+      ? `Summarize in 2-3 sentences:\n\nTitle: ${note.title || 'Untitled'}\n\n${note.content}`
+      : 'Respond with: "This note is empty."',
+  );
 });

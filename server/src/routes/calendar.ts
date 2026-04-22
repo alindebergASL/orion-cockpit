@@ -3,6 +3,7 @@ import { getDb } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
 import { syncCalendar } from '../services/sync.js';
 import { openclawClient } from '../services/openclaw.js';
+import { streamAiText } from '../services/ai-stream.js';
 
 export const calendarRouter = Router();
 
@@ -150,4 +151,39 @@ Order from most useful/largest to smallest.`;
   } catch (err) {
     res.status(500).json({ error: 'Failed to find free time', detail: String(err) });
   }
+});
+
+calendarRouter.post('/ai-meeting-prep', async (req, res) => {
+  const { title, start, end, location, description, attendees } = req.body as {
+    title: string; start: string; end: string;
+    location?: string; description?: string; attendees?: string;
+  };
+
+  if (!title) { res.status(400).json({ error: 'title is required' }); return; }
+
+  const startTime = new Date(start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const endTime = new Date(end).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+  const details = [
+    `Event: ${title}`,
+    `Time: ${startTime} – ${endTime}`,
+    location ? `Location: ${location}` : null,
+    description ? `Description: ${description}` : null,
+    attendees ? `Attendees: ${attendees}` : null,
+  ].filter(Boolean).join('\n');
+
+  const userPrompt = `Generate a concise meeting prep brief for this upcoming event. Include:
+- A 1-sentence summary of what this meeting is about
+- 2-3 bullet points of things to prepare or think about beforehand
+- Any relevant context from the description
+
+${details}
+
+Respond with only the brief — no JSON, no code fences. Use markdown formatting with bullet points.`;
+
+  await streamAiText(
+    res,
+    'You are a helpful meeting prep assistant. Be concise and actionable.',
+    userPrompt,
+  );
 });

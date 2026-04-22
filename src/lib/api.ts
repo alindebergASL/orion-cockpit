@@ -1,4 +1,4 @@
-import type { User, CalendarEvent, Task, Note, Conversation, Insight, SearchResult, Project, ProjectDetail, ProjectTask, ProjectUpdate, ProjectDigest, Template } from '../types';
+import type { User, CalendarEvent, Task, Note, Conversation, Insight, SearchResult, Project, ProjectDetail, ProjectTask, ProjectUpdate, ProjectNote, ProjectDigest, Template } from '../types';
 
 class ApiClient {
   private token: string | null = null;
@@ -180,6 +180,13 @@ class ApiClient {
     return this.request('/api/calendar/ai-free-time', { method: 'POST' });
   }
 
+  async aiMeetingPrep(
+    event: { title: string; start: string; end: string; location?: string; description?: string },
+    onChunk: (text: string) => void,
+  ): Promise<void> {
+    return this.streamAiText('/api/calendar/ai-meeting-prep', event, onChunk);
+  }
+
   async createCalendarEvent(data: {
     title: string;
     start: string;
@@ -272,6 +279,10 @@ class ApiClient {
 
   async aiExpandNote(noteId: number, onChunk: (text: string) => void): Promise<void> {
     return this.streamAiText(`/api/notes/${noteId}/ai-expand`, {}, onChunk);
+  }
+
+  async aiSuggestTags(noteId: number): Promise<{ tags: string[] }> {
+    return this.request(`/api/notes/${noteId}/ai-tags`, { method: 'POST' });
   }
 
   // ── Users (admin) ────────────────────────────────────────
@@ -445,6 +456,28 @@ class ApiClient {
 
   async generateProjectPlan(projectId: number): Promise<{ tasks: ProjectTask[] }> {
     return this.request(`/api/projects/${projectId}/ai-plan`, { method: 'POST' });
+  }
+
+  async addProjectNote(projectId: number, title: string, content: string): Promise<ProjectNote> {
+    return this.request(`/api/projects/${projectId}/notes`, {
+      method: 'POST',
+      body: JSON.stringify({ title, content }),
+    });
+  }
+
+  async updateProjectNote(projectId: number, noteId: number, data: Partial<{ title: string; content: string }>): Promise<void> {
+    await this.request(`/api/projects/${projectId}/notes/${noteId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteProjectNote(projectId: number, noteId: number): Promise<void> {
+    await this.request(`/api/projects/${projectId}/notes/${noteId}`, { method: 'DELETE' });
+  }
+
+  async aiSummarizeProjectNote(projectId: number, noteId: number, onChunk: (text: string) => void): Promise<void> {
+    return this.streamAiText(`/api/projects/${projectId}/notes/${noteId}/ai-summarize`, {}, onChunk);
   }
 
   // ── Search ────────────────────────────────────────────────

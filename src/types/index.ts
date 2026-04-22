@@ -135,9 +135,18 @@ export interface Template {
   updatedAt: string;
 }
 
+export interface ProjectNote {
+  id: number;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ProjectDetail extends Project {
   tasks: ProjectTask[];
   updates: ProjectUpdate[];
+  notes: ProjectNote[];
 }
 
 export type TabId = 'today' | 'chat' | 'calendar' | 'tasks' | 'notes' | 'projects';

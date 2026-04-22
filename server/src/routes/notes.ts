@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { getDb } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
 import { streamAiText } from '../services/ai-stream.js';
+import { openclawClient } from '../services/openclaw.js';
 
 export const notesRouter = Router();
 
@@ -145,4 +146,36 @@ ${note.content}`
     'You are a skilled writer who expands notes into well-structured markdown. Respond with only the expanded content.',
     userPrompt,
   );
+});
+
+notesRouter.post('/:id/ai-tags', async (req, res) => {
+  const note = getDb()
+    .prepare('SELECT title, content, tags FROM notes WHERE id = ? AND user_id = ?')
+    .get(req.params.id, req.user!.id) as { title: string; content: string; tags: string } | undefined;
+
+  if (!note) { res.status(404).json({ error: 'Note not found' }); return; }
+  if (!note.content.trim()) { res.json({ tags: [] }); return; }
+
+  const existingTags = note.tags ? note.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [];
+
+  const prompt = `Suggest 3-5 short tags for this note. Tags should be lowercase, 1-2 words each, and categorize the content.
+${existingTags.length > 0 ? `\nExisting tags (don't duplicate): ${existingTags.join(', ')}` : ''}
+
+Title: ${note.title || 'Untitled'}
+Content:
+${note.content.slice(0, 1000)}
+
+Return ONLY valid JSON (no markdown, no code fences):
+{ "tags": ["tag1", "tag2", "tag3"] }`;
+
+  try {
+    const raw = await openclawClient.chatOnce([
+      { role: 'system', content: 'You are a concise tag suggester. Return only valid JSON.' },
+      { role: 'user', content: prompt },
+    ]);
+    const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    res.json(JSON.parse(cleaned));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to suggest tags', detail: String(err) });
+  }
 });

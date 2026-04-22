@@ -216,6 +216,23 @@ export function NotesTab() {
     }
   }, [activeNote]);
 
+  const handleAiAutoTag = useCallback(async () => {
+    if (!activeNote) return;
+    setShowAiMenu(false);
+    try {
+      const result = await api.aiSuggestTags(activeNote.id);
+      if (result.tags && result.tags.length > 0) {
+        const newTags = [...new Set([...activeNote.tags, ...result.tags])];
+        updateField('tags', newTags);
+        showToast(`Added ${result.tags.length} tags`, 'success');
+      } else {
+        showToast('No tags suggested', 'info');
+      }
+    } catch {
+      showToast('Failed to suggest tags', 'error');
+    }
+  }, [activeNote, updateField]);
+
   const handleAiExpand = useCallback(async () => {
     if (!activeNote) return;
     setAiLoading('expand');
@@ -433,6 +450,12 @@ export function NotesTab() {
                         className="block w-full px-3 py-1.5 text-left text-xs text-th-text hover:bg-th-elevated"
                       >
                         Expand
+                      </button>
+                      <button
+                        onClick={handleAiAutoTag}
+                        className="block w-full px-3 py-1.5 text-left text-xs text-th-text hover:bg-th-elevated"
+                      >
+                        Auto-tag
                       </button>
                     </div>
                   )}

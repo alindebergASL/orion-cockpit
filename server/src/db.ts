@@ -228,4 +228,17 @@ export function initDb(): void {
   try { d.exec("ALTER TABLE notes ADD COLUMN folder TEXT DEFAULT NULL"); } catch { /* exists */ }
   try { d.exec("ALTER TABLE notes ADD COLUMN color TEXT DEFAULT NULL"); } catch { /* exists */ }
   try { d.exec("ALTER TABLE notes ADD COLUMN is_pinned INTEGER DEFAULT 0"); } catch { /* exists */ }
+
+  // Project notes table (safe migration)
+  d.exec(`
+    CREATE TABLE IF NOT EXISTS project_notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      title TEXT NOT NULL DEFAULT '',
+      content TEXT NOT NULL DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    )
+  `);
 }

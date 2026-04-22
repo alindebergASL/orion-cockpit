@@ -361,11 +361,28 @@ export function CalendarTab() {
 function EventDetail({ event, onClose }: { event: CalendarEvent; onClose: () => void }) {
   const start = new Date(event.start);
   const end = new Date(event.end);
+  const [prepLoading, setPrepLoading] = useState(false);
+  const [prepText, setPrepText] = useState<string | null>(null);
+
+  const handleMeetingPrep = async () => {
+    setPrepLoading(true);
+    setPrepText('');
+    try {
+      await api.aiMeetingPrep(
+        { title: event.title, start: event.start, end: event.end, location: event.location, description: event.description },
+        (chunk) => setPrepText((prev) => (prev ?? '') + chunk),
+      );
+    } catch {
+      setPrepText(null);
+    } finally {
+      setPrepLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
       <div
-        className="w-11/12 max-w-md rounded-xl border border-th-border-strong bg-th-surface p-5 shadow-2xl"
+        className="w-11/12 max-w-md rounded-xl border border-th-border-strong bg-th-surface p-5 shadow-2xl max-h-[80vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-start justify-between">
@@ -397,6 +414,31 @@ function EventDetail({ event, onClose }: { event: CalendarEvent; onClose: () => 
 
           {event.description && (
             <p className="mt-3 whitespace-pre-wrap text-th-text-secondary">{event.description}</p>
+          )}
+        </div>
+
+        {/* Meeting Prep */}
+        <div className="mt-4 border-t border-th-border pt-3">
+          {prepText === null && !prepLoading ? (
+            <button
+              onClick={handleMeetingPrep}
+              className="flex items-center gap-1.5 rounded-lg bg-cyan-600/10 px-3 py-2 text-xs text-cyan-400 hover:bg-cyan-600/20"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Meeting Prep
+            </button>
+          ) : (
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <Sparkles className={`h-3 w-3 text-cyan-400 ${prepLoading ? 'animate-pulse' : ''}`} />
+                <span className="text-xs font-medium text-cyan-400">
+                  Meeting Prep{prepLoading && ' · streaming'}
+                </span>
+              </div>
+              <div className="prose prose-invert prose-sm max-w-none text-th-text-secondary">
+                {prepText || <span className="text-th-text-muted italic">waiting...</span>}
+              </div>
+            </div>
           )}
         </div>
       </div>

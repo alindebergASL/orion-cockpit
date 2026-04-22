@@ -15,8 +15,10 @@ import {
   Sparkles,
   RefreshCw,
   Smile,
+  StickyNote,
+  ChevronDown,
 } from 'lucide-react';
-import type { Project, ProjectDetail, ProjectTask, ProjectDigest } from '../../types';
+import type { Project, ProjectDetail, ProjectTask, ProjectNote, ProjectDigest } from '../../types';
 import { api } from '../../lib/api';
 import { renderRichText } from '../../lib/richText';
 import { trackActivity } from '../../lib/activity';
@@ -306,6 +308,58 @@ export function ProjectsTab() {
       trackActivity('project_update_posted', { projectId: detail.id });
     } catch { /* ignore */ }
   }, [detail, newUpdate]);
+
+  // ── Project notes ──────────────────────────────────
+  const [activeNoteId, setActiveNoteId] = useState<number | null>(null);
+  const [noteTitle, setNoteTitle] = useState('');
+  const [noteContent, setNoteContent] = useState('');
+  const [notesExpanded, setNotesExpanded] = useState(true);
+  const noteDebounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  const activeNote = detail?.notes.find((n) => n.id === activeNoteId);
+
+  const handleCreateNote = useCallback(async () => {
+    if (!detail) return;
+    try {
+      const note = await api.addProjectNote(detail.id, 'Untitled', '');
+      setDetail({ ...detail, notes: [note, ...detail.notes] });
+      setActiveNoteId(note.id);
+      setNoteTitle('Untitled');
+      setNoteContent('');
+    } catch { /* ignore */ }
+  }, [detail]);
+
+  const handleSelectNote = useCallback((note: ProjectNote) => {
+    setActiveNoteId(note.id);
+    setNoteTitle(note.title);
+    setNoteContent(note.content);
+  }, []);
+
+  const handleNoteFieldChange = useCallback((field: 'title' | 'content', value: string) => {
+    if (!detail || activeNoteId === null) return;
+    if (field === 'title') setNoteTitle(value);
+    else setNoteContent(value);
+    setDetail({
+      ...detail,
+      notes: detail.notes.map((n) => n.id === activeNoteId ? { ...n, [field]: value, updatedAt: new Date().toISOString() } : n),
+    });
+    if (noteDebounceRef.current) clearTimeout(noteDebounceRef.current);
+    const noteId = activeNoteId;
+    noteDebounceRef.current = setTimeout(() => {
+      api.updateProjectNote(detail.id, noteId, { [field]: value }).catch(() => {});
+    }, 500);
+  }, [detail, activeNoteId]);
+
+  const handleDeleteNote = useCallback(async (noteId: number) => {
+    if (!detail || !confirm('Delete this note?')) return;
+    setDetail({ ...detail, notes: detail.notes.filter((n) => n.id !== noteId) });
+    if (activeNoteId === noteId) setActiveNoteId(null);
+    try { await api.deleteProjectNote(detail.id, noteId); } catch { /* ignore */ }
+  }, [detail, activeNoteId]);
+
+  useEffect(() => {
+    setActiveNoteId(null);
+  }, [activeId]);
 
   const filteredProjects = statusFilter === 'all' ? projects : projects.filter((p) => p.status === statusFilter);
   const activeCount = projects.filter((p) => p.status === 'active').length;
@@ -609,6 +663,87 @@ export function ProjectsTab() {
                 rows={3}
                 className="w-full resize-none bg-transparent text-base md:text-sm text-th-text-secondary leading-relaxed outline-none placeholder-th-text-muted"
               />
+            </div>
+
+            {/* Notes */}
+            <div className="border-b border-th-border px-6 py-4">
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  onClick={() => setNotesExpanded(!notesExpanded)}
+                  className="flex items-center gap-2"
+                >
+                  <StickyNote className="h-4 w-4 text-cyan-400" />
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-th-text-secondary">
+                    Notes {detail.notes.length > 0 && `(${detail.notes.length})`}
+                  </h3>
+                  <ChevronDown className={`h-3 w-3 text-th-text-muted transition-transform ${notesExpanded ? '' : '-rotate-90'}`} />
+                </button>
+                <button
+                  onClick={handleCreateNote}
+                  className="flex items-center gap-1 rounded-md border border-th-border px-2 py-1 text-[11px] text-th-text-secondary hover:bg-th-elevated"
+                >
+                  <Plus className="h-3 w-3" /> Note
+                </button>
+              </div>
+
+              {notesExpanded && (
+                <>
+                  {detail.notes.length === 0 ? (
+                    <p className="text-xs text-th-text-muted">No notes yet. Add meeting notes, research, or ideas for this project.</p>
+                  ) : (
+                    <div className="space-y-1 mb-2">
+                      {detail.notes.map((note) => (
+                        <div
+                          key={note.id}
+                          className={`group flex items-center gap-2 rounded-md px-2 py-2 cursor-pointer ${activeNoteId === note.id ? 'bg-th-elevated' : 'hover:bg-th-elevated/50'}`}
+                          onClick={() => handleSelectNote(note)}
+                        >
+                          <StickyNote className="h-3.5 w-3.5 text-th-text-muted shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm text-th-text">{note.title || 'Untitled'}</p>
+                            <p className="truncate text-xs text-th-text-muted">{note.content.slice(0, 60) || 'Empty note'}</p>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteNote(note.id); }}
+                            className="shrink-0 rounded p-1.5 text-th-text-muted md:opacity-0 md:group-hover:opacity-100 hover:text-red-400"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {activeNoteId !== null && activeNote && (
+                    <div className="rounded-lg border border-th-border bg-th-surface">
+                      <input
+                        value={noteTitle}
+                        onChange={(e) => handleNoteFieldChange('title', e.target.value)}
+                        placeholder="Note title"
+                        className="w-full border-b border-th-border bg-transparent px-4 py-2.5 text-sm font-medium text-th-text outline-none placeholder-th-text-muted"
+                      />
+                      <textarea
+                        value={noteContent}
+                        onChange={(e) => handleNoteFieldChange('content', e.target.value)}
+                        placeholder="Write your note... (supports Markdown)"
+                        rows={5}
+                        className="w-full resize-y bg-transparent px-4 py-3 text-base md:text-sm text-th-text-secondary leading-relaxed outline-none placeholder-th-text-muted font-mono"
+                      />
+                      <div className="flex items-center justify-between border-t border-th-border px-4 py-1.5">
+                        <span className="text-[10px] text-th-text-muted">
+                          {noteContent.split(/\s+/).filter(Boolean).length} words
+                        </span>
+                        <button
+                          onClick={() => setActiveNoteId(null)}
+                          className="text-[10px] text-th-text-muted hover:text-th-text-secondary"
+                        >
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             {/* Tasks */}
