@@ -408,6 +408,15 @@ export function ProjectsTab() {
     setActiveNoteId(null);
   }, [activeId]);
 
+  // Cmd+N — create new project
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail?.tab === 'projects') createProject();
+    };
+    window.addEventListener('orion-new-item', handler);
+    return () => window.removeEventListener('orion-new-item', handler);
+  }, [createProject]);
+
   const filteredProjects = statusFilter === 'all' ? projects : projects.filter((p) => p.status === statusFilter);
   const activeCount = projects.filter((p) => p.status === 'active').length;
 

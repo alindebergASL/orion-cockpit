@@ -284,6 +284,15 @@ export function NotesTab() {
     setAiResult(null);
   }, [aiResult, activeNote, updateField]);
 
+  // Cmd+N new note handler
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail?.tab === 'notes') createNote();
+    };
+    window.addEventListener('orion-new-item', handler);
+    return () => window.removeEventListener('orion-new-item', handler);
+  }, [createNote]);
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">

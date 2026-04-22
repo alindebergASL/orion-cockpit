@@ -71,6 +71,23 @@ export function useChat(tabContext: string) {
     async (content: string) => {
       if (streamingRef.current || !content.trim()) return;
 
+      // Slash command expansion
+      let expanded = content.trim();
+      const slashMatch = expanded.match(/^\/(\w+)\s*(.*)/);
+      if (slashMatch) {
+        const [, cmd, rest] = slashMatch;
+        const expansions: Record<string, string> = {
+          task: `Create a task: ${rest || 'untitled task'}`,
+          event: `Create a calendar event: ${rest || 'untitled event'}`,
+          note: `Create a note titled "${rest || 'Untitled'}"`,
+          focus: 'Find my best free time blocks this week for focus work.',
+          prep: 'Give me a prep brief for my next upcoming meeting.',
+        };
+        if (cmd && expansions[cmd]) {
+          expanded = expansions[cmd];
+        }
+      }
+
       const userMsg: ChatMessage = {
         id: makeId(),
         role: 'user',
@@ -91,7 +108,7 @@ export function useChat(tabContext: string) {
 
       try {
         await api.streamChat(
-          content.trim(),
+          expanded,
           tabContext,
           (chunk) => {
             setMessages((prev) =>

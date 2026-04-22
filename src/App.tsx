@@ -6,6 +6,7 @@ import { ToastContainer } from './components/Toast';
 import { SearchPalette } from './components/SearchPalette';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { OpenClawFab } from './components/OpenClawFab';
+import { ShortcutsModal } from './components/ShortcutsModal';
 import { trackActivity } from './lib/activity';
 import { LoginPage } from './components/auth/LoginPage';
 import { Layout } from './components/Layout';
@@ -41,6 +42,7 @@ function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabId>('today');
   const [visitedTabs, setVisitedTabs] = useState<Set<TabId>>(new Set(['today']));
   const [searchOpen, setSearchOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   // Mark each activated tab as visited so lazy-loaded modules mount (and stay mounted)
   useEffect(() => {
@@ -52,13 +54,30 @@ function Dashboard() {
     });
   }, [activeTab]);
 
-  // Keyboard shortcuts: Ctrl/Cmd + 1-5 for tabs, Ctrl/Cmd+K for search
+  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // Escape closes modals
+      if (e.key === 'Escape') {
+        if (searchOpen) { setSearchOpen(false); return; }
+        if (shortcutsOpen) { setShortcutsOpen(false); return; }
+      }
+
       if (e.metaKey || e.ctrlKey) {
         if (e.key === 'k') {
           e.preventDefault();
           setSearchOpen((prev) => !prev);
+          return;
+        }
+        if (e.key === '/') {
+          e.preventDefault();
+          setShortcutsOpen((prev) => !prev);
+          return;
+        }
+        if (e.key === 'n') {
+          e.preventDefault();
+          // Context-aware new item
+          window.dispatchEvent(new CustomEvent('orion-new-item', { detail: { tab: activeTab } }));
           return;
         }
         const num = parseInt(e.key, 10);
@@ -70,7 +89,7 @@ function Dashboard() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [activeTab, searchOpen, shortcutsOpen]);
 
   // Listen for navigation events from Home tab quick actions
   useEffect(() => {
@@ -119,6 +138,8 @@ function Dashboard() {
 
       {/* Persistent AI assistant, context-aware to active tab */}
       {activeTab !== 'chat' && <OpenClawFab activeTab={activeTab} />}
+
+      {shortcutsOpen && <ShortcutsModal onClose={() => setShortcutsOpen(false)} />}
     </>
   );
 }

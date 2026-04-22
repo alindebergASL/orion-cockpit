@@ -21,14 +21,27 @@ export async function runAgentLoop(): Promise<void> {
 async function generateInsightsForUser(userId: number, displayName: string): Promise<void> {
   const db = getDb();
 
-  // Gather context
+  // Gather context from ALL data sources
   const events = db
-    .prepare("SELECT title, start, end, calendar, location FROM calendar_events WHERE (user_id = ? OR user_id IS NULL) AND start >= datetime('now') ORDER BY start ASC LIMIT 30")
+    .prepare("SELECT title, start, end, calendar, location, description FROM calendar_events WHERE (user_id = ? OR user_id IS NULL) AND start >= datetime('now') ORDER BY start ASC LIMIT 30")
     .all(userId) as Record<string, unknown>[];
 
   const tasks = db
-    .prepare("SELECT title, status, priority, due_date, list_name FROM tasks WHERE (user_id = ? OR user_id IS NULL) AND status != 'completed' ORDER BY due_date ASC NULLS LAST")
+    .prepare("SELECT title, status, priority, due_date, list_name, description FROM tasks WHERE (user_id = ? OR user_id IS NULL) AND status != 'completed' ORDER BY due_date ASC NULLS LAST")
     .all(userId) as Record<string, unknown>[];
+
+  const projects = db
+    .prepare("SELECT p.title, p.status, p.target_date, (SELECT COUNT(*) FROM project_tasks pt WHERE pt.project_id = p.id AND pt.status = 'open') as open_tasks, (SELECT COUNT(*) FROM project_tasks pt WHERE pt.project_id = p.id) as total_tasks FROM projects p WHERE p.user_id = ? AND p.status = 'active'")
+    .all(userId) as Record<string, unknown>[];
+
+  const todayKey = new Date().toISOString().split('T')[0];
+  const dailyNote = db
+    .prepare('SELECT content FROM daily_notes WHERE user_id = ? AND date = ?')
+    .get(userId, todayKey) as { content: string } | undefined;
+
+  const recentNotes = db
+    .prepare("SELECT title, tags FROM notes WHERE user_id = ? AND updated_at > datetime('now', '-7 days') ORDER BY updated_at DESC LIMIT 10")
+    .all(userId) as { title: string; tags: string }[];
 
   const recentActivity = db
     .prepare("SELECT action, details, created_at FROM activity_log WHERE user_id = ? AND created_at > datetime('now', '-24 hours') ORDER BY id DESC LIMIT 20")
@@ -38,12 +51,23 @@ async function generateInsightsForUser(userId: number, displayName: string): Pro
     .prepare("SELECT title FROM insights WHERE user_id = ? AND created_at > datetime('now', '-24 hours')")
     .all(userId) as { title: string }[];
 
-  // Don't generate if no data yet
-  if (events.length === 0 && tasks.length === 0) return;
+  if (events.length === 0 && tasks.length === 0 && projects.length === 0) return;
 
   const existingTitles = existingInsights.map((i) => i.title);
 
-  const prompt = `You are analyzing ${displayName}'s dashboard data to generate helpful, actionable insights.
+  const projectsSummary = projects.length > 0
+    ? `Active projects:\n${projects.map((p) => `  - ${p.title}: ${p.open_tasks}/${p.total_tasks} tasks open${p.target_date ? `, due ${p.target_date}` : ''}`).join('\n')}`
+    : 'No active projects.';
+
+  const notesSummary = recentNotes.length > 0
+    ? `Recent notes (past 7 days): ${recentNotes.map((n) => `"${n.title}"${n.tags ? ` [${n.tags}]` : ''}`).join(', ')}`
+    : '';
+
+  const journalSection = dailyNote?.content?.trim()
+    ? `Today's journal entry: "${dailyNote.content.trim().slice(0, 300)}"`
+    : '';
+
+  const prompt = `You are ${displayName}'s proactive AI assistant. Analyze their complete dashboard to surface insights that connect dots across calendar, tasks, projects, and notes.
 
 Today is ${new Date().toISOString().split('T')[0]}.
 
@@ -53,20 +77,28 @@ ${JSON.stringify(events, null, 2)}
 Open tasks:
 ${JSON.stringify(tasks, null, 2)}
 
+${projectsSummary}
+
+${notesSummary}
+
+${journalSection}
+
 Recent activity (last 24h):
 ${recentActivity.map((a) => `${a.action}: ${a.details || ''} (${a.created_at})`).join('\n') || 'No recent activity'}
 
 Already generated insights (don't duplicate):
 ${existingTitles.join(', ') || 'None'}
 
-Generate 0-3 NEW insights. Only generate an insight if it's genuinely useful — don't force it. Look for:
-- Calendar conflicts (overlapping events)
-- Overdue or at-risk tasks (due soon, not started)
-- Patterns (busy days, scheduling gaps, productivity trends)
-- Proactive suggestions (prep for upcoming events, group errands)
+Generate 0-3 NEW insights. Only generate if genuinely useful. Look for:
+- **Cross-entity connections**: task related to an upcoming meeting, project deadline approaching with incomplete tasks, note topics that match calendar events
+- **Calendar conflicts**: overlapping events, overscheduled days
+- **Deadline risks**: overdue tasks, projects with approaching target dates but low completion
+- **Momentum observations**: stalled projects (no activity in days), unbalanced workload
+- **Proactive prep**: meetings in next 2h that need preparation, tasks due today
+- **Journal alignment**: if the journal mentions a priority, check if it's reflected in tasks/calendar
 
 Return a JSON array (or empty array if nothing noteworthy):
-[{ "type": "calendar_conflict|overdue_task|suggestion|pattern", "title": "short title", "body": "2-3 sentence explanation", "priority": "high|normal|low" }]
+[{ "type": "cross_tab|calendar_conflict|deadline_risk|momentum|preparation|suggestion", "title": "short title", "body": "2-3 sentence explanation connecting the dots", "priority": "high|normal|low", "action_type": "navigate|null", "action_data": "{\\"tab\\": \\"tasks\\"}" }]
 
 Return ONLY the JSON array, no other text.`;
 
@@ -83,15 +115,16 @@ Return ONLY the JSON array, no other text.`;
       title: string;
       body: string;
       priority?: string;
+      action_type?: string;
+      action_data?: string;
     }>;
 
     const insertStmt = db.prepare(`
-      INSERT INTO insights (user_id, type, title, body, priority, expires_at)
-      VALUES (?, ?, ?, ?, ?, datetime('now', '+48 hours'))
+      INSERT INTO insights (user_id, type, title, body, priority, action_type, action_data, expires_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+48 hours'))
     `);
 
     for (const insight of insights) {
-      // Skip duplicates
       if (existingTitles.some((t) => t.toLowerCase() === insight.title.toLowerCase())) continue;
 
       insertStmt.run(
@@ -100,6 +133,8 @@ Return ONLY the JSON array, no other text.`;
         insight.title,
         insight.body,
         insight.priority || 'normal',
+        insight.action_type || null,
+        insight.action_data || null,
       );
     }
 

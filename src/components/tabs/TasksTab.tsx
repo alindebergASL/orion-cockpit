@@ -308,6 +308,17 @@ export function TasksTab() {
     });
   }, []);
 
+  // Cmd+N — focus quick-add input
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail?.tab === 'tasks') {
+        document.querySelector<HTMLInputElement>('input[placeholder="Add a task..."]')?.focus();
+      }
+    };
+    window.addEventListener('orion-new-item', handler);
+    return () => window.removeEventListener('orion-new-item', handler);
+  }, []);
+
   // Task counts for filter badges
   const counts = useMemo(() => ({
     open: tasks.filter((t) => t.status !== 'completed').length,

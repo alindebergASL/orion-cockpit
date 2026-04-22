@@ -416,13 +416,28 @@ export function TodayTab() {
         {isViewingToday && insights.length > 0 && (
           <div className="mb-5 space-y-1.5">
             {insights.map((insight) => (
-              <div key={insight.id} className="flex items-start gap-2.5 rounded-lg border border-th-border bg-th-surface px-4 py-2.5">
+              <button
+                key={insight.id}
+                onClick={() => {
+                  if (insight.actionType === 'navigate' && insight.actionData) {
+                    try {
+                      const data = typeof insight.actionData === 'string' ? JSON.parse(insight.actionData) : insight.actionData;
+                      if (data.tab) navigateTab(data.tab);
+                    } catch { /* ignore */ }
+                  }
+                  api.markInsightRead(insight.id).catch(() => {});
+                }}
+                className="flex w-full items-start gap-2.5 rounded-lg border border-th-border bg-th-surface px-4 py-2.5 text-left hover:bg-th-elevated/50 transition-colors"
+              >
                 <Lightbulb className="h-4 w-4 mt-0.5 shrink-0 text-cyan-400" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-th-text">{insight.title}</p>
                   <p className="text-xs text-th-text-muted">{insight.body}</p>
                 </div>
-              </div>
+                {insight.actionType === 'navigate' && (
+                  <ChevronRight className="h-4 w-4 mt-0.5 shrink-0 text-th-text-muted" />
+                )}
+              </button>
             ))}
           </div>
         )}
