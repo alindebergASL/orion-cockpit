@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastContainer } from './components/Toast';
 import { SearchPalette } from './components/SearchPalette';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { trackActivity } from './lib/activity';
 import { LoginPage } from './components/auth/LoginPage';
 import { Layout } from './components/Layout';
@@ -98,9 +99,11 @@ function Dashboard() {
           if (!visitedTabs.has(id)) return null;
           return (
             <div key={id} className={id === activeTab ? 'h-full' : 'hidden'}>
-              <Suspense fallback={<TabFallback />}>
-                <Component />
-              </Suspense>
+              <ErrorBoundary tabName={id}>
+                <Suspense fallback={<TabFallback />}>
+                  <Component />
+                </Suspense>
+              </ErrorBoundary>
             </div>
           );
         })}
@@ -136,11 +139,13 @@ function AppContent() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <AppContent />
-        <ToastContainer />
-      </AuthProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppContent />
+          <ToastContainer />
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }

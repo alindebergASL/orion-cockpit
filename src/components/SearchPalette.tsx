@@ -190,7 +190,7 @@ export function SearchPalette({ onClose, onNavigate }: Props) {
 
           {query && results.length === 0 && !loading && (
             <div className="px-4 py-8 text-center text-sm text-th-text-muted">
-              No results for "{query}"
+              No results for &ldquo;{query}&rdquo;
             </div>
           )}
 

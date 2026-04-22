@@ -1,0 +1,6 @@
+dist
+server/dist
+node_modules
+server/node_modules
+*.md
+package-lock.json

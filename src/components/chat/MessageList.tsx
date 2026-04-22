@@ -35,11 +35,11 @@ export function MessageList({ messages, streaming }: Props) {
         <div className="text-center">
           <p className="text-lg font-medium text-th-text">Hey! How can I help you today?</p>
           <p className="mt-1.5 text-sm text-th-text-muted max-w-md">
-            I can check your schedule, manage tasks, create calendar events, or just chat. What's on your mind?
+            I can check your schedule, manage tasks, create calendar events, or just chat. What&apos;s on your mind?
           </p>
         </div>
         <div className="flex flex-wrap justify-center gap-2 mt-2">
-          <span className="rounded-full border border-th-border px-3 py-1 text-xs text-th-text-secondary">What's on my calendar today?</span>
+          <span className="rounded-full border border-th-border px-3 py-1 text-xs text-th-text-secondary">What&apos;s on my calendar today?</span>
           <span className="rounded-full border border-th-border px-3 py-1 text-xs text-th-text-secondary">Show my open tasks</span>
           <span className="rounded-full border border-th-border px-3 py-1 text-xs text-th-text-secondary">Create a reminder</span>
         </div>
