@@ -330,7 +330,16 @@ export function CalendarTab() {
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
-            <MessageList messages={chat.messages} streaming={chat.streaming} />
+            <MessageList
+              messages={chat.messages}
+              streaming={chat.streaming}
+              onSuggestionClick={chat.send}
+              suggestions={[
+                'Am I free tomorrow afternoon?',
+                "What's on my calendar this week?",
+                'Block 2 hours for focus work',
+              ]}
+            />
             <MessageInput
               onSend={chat.send}
               onStop={chat.stop}

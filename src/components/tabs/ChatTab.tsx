@@ -195,7 +195,7 @@ export function ChatTab() {
           </div>
         ) : (
           <>
-            <MessageList messages={messages} streaming={streaming} />
+            <MessageList messages={messages} streaming={streaming} onSuggestionClick={send} />
             <MessageInput onSend={send} onStop={stop} streaming={streaming} />
           </>
         )}

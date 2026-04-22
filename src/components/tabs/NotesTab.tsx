@@ -21,7 +21,7 @@ import remarkGfm from 'remark-gfm';
 import type { Note } from '../../types';
 import { api } from '../../lib/api';
 import { trackActivity } from '../../lib/activity';
-import { showToast } from '../Toast';
+import { showToast, showUndoToast } from '../Toast';
 
 const NOTE_COLORS = [
   { name: 'none', hex: '' },
@@ -125,16 +125,37 @@ export function NotesTab() {
     }
   }, [filterFolder]);
 
-  const deleteNote = useCallback(async (id: number) => {
-    if (!confirm('Delete this note?')) return;
-    try {
-      await api.deleteNote(id);
-      setNotes((prev) => prev.filter((n) => n.id !== id));
-      if (activeId === id) setActiveId(null);
-    } catch {
-      showToast('Failed to delete note', 'error');
-    }
-  }, [activeId]);
+  const deleteNote = useCallback((id: number) => {
+    const noteToDelete = notes.find((n) => n.id === id);
+    if (!noteToDelete) return;
+
+    // Optimistic removal + undo window
+    setNotes((prev) => prev.filter((n) => n.id !== id));
+    if (activeId === id) setActiveId(null);
+
+    let undone = false;
+    showUndoToast(
+      `Deleted "${noteToDelete.title || 'Untitled'}"`,
+      () => {
+        undone = true;
+        setNotes((prev) => [noteToDelete, ...prev].sort((a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+        ));
+      },
+      {
+        onExpire: async () => {
+          if (undone) return;
+          try {
+            await api.deleteNote(id);
+          } catch {
+            // Restore on failure
+            setNotes((prev) => [noteToDelete, ...prev]);
+            showToast('Failed to delete note', 'error');
+          }
+        },
+      },
+    );
+  }, [activeId, notes]);
 
   const updateField = useCallback((field: string, value: unknown) => {
     if (activeId === null) return;
@@ -349,9 +370,25 @@ export function NotesTab() {
         {/* Note list */}
         <div className="flex-1 overflow-y-auto">
           {filteredNotes.length === 0 && (
-            <div className="flex flex-col items-center gap-2 py-12 text-th-text-muted">
+            <div className="flex flex-col items-center gap-3 py-12 px-4 text-th-text-muted">
               <FileText className="h-8 w-8" />
               <p className="text-xs">{notes.length === 0 ? 'No notes yet' : 'No notes match'}</p>
+              {notes.length === 0 ? (
+                <button
+                  onClick={createNote}
+                  className="flex items-center gap-1.5 rounded-lg bg-cyan-600 px-3 py-1.5 text-xs text-white hover:bg-cyan-500"
+                >
+                  <Plus className="h-3 w-3" />
+                  Create your first note
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setSearchQuery(''); setFilterFolder('all'); setFilterTag('all'); }}
+                  className="text-xs text-cyan-400 hover:underline"
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
           )}
 
@@ -512,13 +549,31 @@ export function NotesTab() {
                     </button>
                   </span>
                 ))}
-                <input
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') addTag(); }}
-                  placeholder="+ tag"
-                  className="w-14 bg-transparent text-[10px] text-th-text-muted outline-none placeholder-th-text-muted"
-                />
+                <div className="relative">
+                  <input
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') addTag(); if (e.key === 'Escape') setTagInput(''); }}
+                    placeholder="+ tag"
+                    className="w-20 bg-transparent text-[10px] text-th-text-muted outline-none placeholder-th-text-muted"
+                  />
+                  {tagInput.trim() && (
+                    <div className="absolute left-0 top-full mt-1 z-10 min-w-[120px] rounded-md border border-th-border bg-th-surface shadow-lg">
+                      {allTags
+                        .filter((t) => !activeNote.tags.includes(t) && t.toLowerCase().includes(tagInput.toLowerCase().replace(/^#/, '')))
+                        .slice(0, 5)
+                        .map((t) => (
+                          <button
+                            key={t}
+                            onClick={() => { updateField('tags', [...activeNote.tags, t]); setTagInput(''); }}
+                            className="block w-full px-2 py-1 text-left text-[11px] text-cyan-400 hover:bg-th-elevated"
+                          >
+                            #{t}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -608,7 +663,14 @@ export function NotesTab() {
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 text-th-text-muted">
             <FileText className="h-12 w-12" />
-            <p>Select or create a note</p>
+            <p>{notes.length === 0 ? 'No notes yet' : 'Select a note to start editing'}</p>
+            <button
+              onClick={createNote}
+              className="flex items-center gap-1.5 rounded-lg bg-cyan-600 px-4 py-2 text-sm text-white hover:bg-cyan-500"
+            >
+              <Plus className="h-4 w-4" />
+              {notes.length === 0 ? 'Create your first note' : 'New note'}
+            </button>
           </div>
         )}
       </div>

@@ -7,7 +7,15 @@ import type { ChatMessage } from '../../types';
 interface Props {
   messages: ChatMessage[];
   streaming: boolean;
+  suggestions?: string[];
+  onSuggestionClick?: (prompt: string) => void;
 }
+
+const DEFAULT_SUGGESTIONS = [
+  "What's on my calendar today?",
+  'Show my open tasks',
+  'Create a reminder',
+];
 
 function ThinkingIndicator() {
   return (
@@ -19,8 +27,9 @@ function ThinkingIndicator() {
   );
 }
 
-export function MessageList({ messages, streaming }: Props) {
+export function MessageList({ messages, streaming, suggestions, onSuggestionClick }: Props) {
   const endRef = useRef<HTMLDivElement>(null);
+  const chips = suggestions ?? DEFAULT_SUGGESTIONS;
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -39,9 +48,16 @@ export function MessageList({ messages, streaming }: Props) {
           </p>
         </div>
         <div className="flex flex-wrap justify-center gap-2 mt-2">
-          <span className="rounded-full border border-th-border px-3 py-1 text-xs text-th-text-secondary">What&apos;s on my calendar today?</span>
-          <span className="rounded-full border border-th-border px-3 py-1 text-xs text-th-text-secondary">Show my open tasks</span>
-          <span className="rounded-full border border-th-border px-3 py-1 text-xs text-th-text-secondary">Create a reminder</span>
+          {chips.map((chip) => (
+            <button
+              key={chip}
+              onClick={() => onSuggestionClick?.(chip)}
+              disabled={!onSuggestionClick}
+              className="rounded-full border border-th-border px-3 py-1.5 text-xs text-th-text-secondary hover:border-cyan-600/50 hover:bg-cyan-600/10 hover:text-cyan-400 transition-colors disabled:cursor-default disabled:hover:border-th-border disabled:hover:bg-transparent disabled:hover:text-th-text-secondary"
+            >
+              {chip}
+            </button>
+          ))}
         </div>
       </div>
     );

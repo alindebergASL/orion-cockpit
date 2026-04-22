@@ -22,6 +22,7 @@ import type { Project, ProjectDetail, ProjectTask, ProjectNote, ProjectDigest } 
 import { api } from '../../lib/api';
 import { renderRichText } from '../../lib/richText';
 import { trackActivity } from '../../lib/activity';
+import { showToast, showUndoToast } from '../Toast';
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -176,15 +177,34 @@ export function ProjectsTab() {
     } catch { /* ignore */ }
   }, []);
 
-  const deleteProject = useCallback(async (id: number) => {
-    if (!confirm('Delete this project and all its tasks?')) return;
-    try {
-      await api.deleteProject(id);
-      setProjects((prev) => prev.filter((p) => p.id !== id));
-      if (activeId === id) { setActiveId(null); setDetail(null); }
-      trackActivity('project_deleted', { projectId: id });
-    } catch { /* ignore */ }
-  }, [activeId]);
+  const deleteProject = useCallback((id: number) => {
+    const projectToDelete = projects.find((p) => p.id === id);
+    if (!projectToDelete) return;
+
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+    if (activeId === id) { setActiveId(null); setDetail(null); }
+
+    let undone = false;
+    showUndoToast(
+      `Deleted "${projectToDelete.title || 'project'}"`,
+      () => {
+        undone = true;
+        setProjects((prev) => [projectToDelete, ...prev]);
+      },
+      {
+        onExpire: async () => {
+          if (undone) return;
+          try {
+            await api.deleteProject(id);
+            trackActivity('project_deleted', { projectId: id });
+          } catch {
+            setProjects((prev) => [projectToDelete, ...prev]);
+            showToast('Failed to delete project', 'error');
+          }
+        },
+      },
+    );
+  }, [activeId, projects]);
 
   // Use ref for stable ID in debounced saves
   const updateField = useCallback((field: string, value: unknown) => {
@@ -350,11 +370,38 @@ export function ProjectsTab() {
     }, 500);
   }, [detail, activeNoteId]);
 
-  const handleDeleteNote = useCallback(async (noteId: number) => {
-    if (!detail || !confirm('Delete this note?')) return;
+  const handleDeleteNote = useCallback((noteId: number) => {
+    if (!detail) return;
+    const noteToDelete = detail.notes.find((n) => n.id === noteId);
+    if (!noteToDelete) return;
+    const currentDetail = detail;
+
     setDetail({ ...detail, notes: detail.notes.filter((n) => n.id !== noteId) });
     if (activeNoteId === noteId) setActiveNoteId(null);
-    try { await api.deleteProjectNote(detail.id, noteId); } catch { /* ignore */ }
+
+    let undone = false;
+    showUndoToast(
+      `Deleted "${noteToDelete.title || 'note'}"`,
+      () => {
+        undone = true;
+        setDetail((prev) => prev && prev.id === currentDetail.id
+          ? { ...prev, notes: [noteToDelete, ...prev.notes] }
+          : prev);
+      },
+      {
+        onExpire: async () => {
+          if (undone) return;
+          try {
+            await api.deleteProjectNote(currentDetail.id, noteId);
+          } catch {
+            setDetail((prev) => prev && prev.id === currentDetail.id
+              ? { ...prev, notes: [noteToDelete, ...prev.notes] }
+              : prev);
+            showToast('Failed to delete note', 'error');
+          }
+        },
+      },
+    );
   }, [detail, activeNoteId]);
 
   useEffect(() => {

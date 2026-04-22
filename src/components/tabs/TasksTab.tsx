@@ -646,9 +646,35 @@ export function TasksTab() {
         )}
 
         {!error && filteredTasks.length === 0 && !loading && (
-          <div className="flex flex-col items-center gap-2 px-4 py-12 text-th-text-secondary">
+          <div className="flex flex-col items-center gap-3 px-4 py-12 text-th-text-secondary">
             <ListChecks className="h-10 w-10" />
-            <p className="text-sm">{tasks.length === 0 ? 'No tasks found' : 'No tasks match filters'}</p>
+            <p className="text-sm">{tasks.length === 0 ? 'No tasks yet' : 'No tasks match filters'}</p>
+            {tasks.length === 0 ? (
+              <div className="flex flex-col items-center gap-2">
+                <button
+                  onClick={() => document.querySelector<HTMLInputElement>('input[placeholder="Add a task..."]')?.focus()}
+                  className="flex items-center gap-1.5 rounded-lg bg-cyan-600 px-4 py-2 text-xs text-white hover:bg-cyan-500"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add your first task
+                </button>
+                <button
+                  onClick={handleSync}
+                  disabled={syncing}
+                  className="flex items-center gap-1.5 rounded-lg border border-th-border px-4 py-2 text-xs text-th-text-secondary hover:bg-th-elevated"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} />
+                  Sync from OpenClaw
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => { setFilterStatus('all'); setFilterPriority('all'); setFilterList('all'); }}
+                className="text-xs text-cyan-400 hover:underline"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
         )}
 

@@ -7,14 +7,45 @@ interface Toast {
   id: number;
   message: string;
   type: ToastType;
+  action?: { label: string; onClick: () => void };
+  duration?: number;
 }
 
 let toastId = 0;
 const listeners = new Set<(toast: Toast) => void>();
+const dismissListeners = new Set<(id: number) => void>();
 
 export function showToast(message: string, type: ToastType = 'info') {
   const toast = { id: ++toastId, message, type };
   listeners.forEach((fn) => fn(toast));
+  return toast.id;
+}
+
+export function showUndoToast(
+  message: string,
+  onUndo: () => void,
+  options?: { duration?: number; onExpire?: () => void },
+): number {
+  const duration = options?.duration ?? 5000;
+  const id = ++toastId;
+  const toast: Toast = {
+    id,
+    message,
+    type: 'info',
+    duration,
+    action: {
+      label: 'Undo',
+      onClick: () => {
+        onUndo();
+        dismissListeners.forEach((fn) => fn(id));
+      },
+    },
+  };
+  listeners.forEach((fn) => fn(toast));
+  if (options?.onExpire) {
+    setTimeout(() => options.onExpire?.(), duration);
+  }
+  return id;
 }
 
 const icons: Record<ToastType, React.FC<{ className?: string }>> = {
@@ -44,10 +75,17 @@ export function ToastContainer() {
       setToasts((prev) => [...prev.slice(-4), toast]);
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== toast.id));
-      }, 4000);
+      }, toast.duration ?? 4000);
+    };
+    const dismissHandler = (id: number) => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
     };
     listeners.add(handler);
-    return () => { listeners.delete(handler); };
+    dismissListeners.add(dismissHandler);
+    return () => {
+      listeners.delete(handler);
+      dismissListeners.delete(dismissHandler);
+    };
   }, []);
 
   const dismiss = (id: number) => {
@@ -68,6 +106,14 @@ export function ToastContainer() {
           >
             <Icon className="h-4 w-4 shrink-0" />
             <span className="flex-1">{toast.message}</span>
+            {toast.action && (
+              <button
+                onClick={toast.action.onClick}
+                className="shrink-0 rounded px-2 py-0.5 text-xs font-medium underline underline-offset-2 hover:opacity-80"
+              >
+                {toast.action.label}
+              </button>
+            )}
             <button onClick={() => dismiss(toast.id)} className="shrink-0 opacity-60 hover:opacity-100">
               <X className="h-3.5 w-3.5" />
             </button>
@@ -77,3 +123,4 @@ export function ToastContainer() {
     </div>
   );
 }
+

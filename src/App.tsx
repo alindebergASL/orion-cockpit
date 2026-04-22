@@ -5,6 +5,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastContainer } from './components/Toast';
 import { SearchPalette } from './components/SearchPalette';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { OpenClawFab } from './components/OpenClawFab';
 import { trackActivity } from './lib/activity';
 import { LoginPage } from './components/auth/LoginPage';
 import { Layout } from './components/Layout';
@@ -115,6 +116,9 @@ function Dashboard() {
           onNavigate={(tab) => { handleTabChange(tab as TabId); setSearchOpen(false); }}
         />
       )}
+
+      {/* Persistent AI assistant, context-aware to active tab */}
+      {activeTab !== 'chat' && <OpenClawFab activeTab={activeTab} />}
     </>
   );
 }
