@@ -162,12 +162,12 @@ export function CalendarTab() {
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
           {/* View toggle */}
           <div className="flex rounded-lg border border-th-border-strong text-xs">
             <button
               onClick={() => setView('week')}
-              className={`rounded-l-lg px-2.5 py-1 ${
+              className={`rounded-l-lg px-2.5 py-1.5 ${
                 view === 'week' ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-secondary hover:text-th-text-secondary'
               }`}
             >
@@ -175,7 +175,7 @@ export function CalendarTab() {
             </button>
             <button
               onClick={() => setView('month')}
-              className={`rounded-r-lg px-2.5 py-1 ${
+              className={`rounded-r-lg px-2.5 py-1.5 ${
                 view === 'month' ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-secondary hover:text-th-text-secondary'
               }`}
             >
@@ -186,34 +186,34 @@ export function CalendarTab() {
           {/* Chat toggle */}
           <button
             onClick={() => setChatOpen((o) => !o)}
-            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs transition-colors ${
+            className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${
               chatOpen ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-secondary hover:text-th-text-secondary'
             }`}
           >
             <MessageSquare className="h-3.5 w-3.5" />
-            Chat
+            <span className="hidden sm:inline">Chat</span>
           </button>
 
           {/* AI Free Time */}
           <button
             onClick={handleFreeTime}
             disabled={freeTimeLoading}
-            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs transition-colors ${
+            className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${
               freeTimeLoading ? 'text-cyan-400 animate-pulse' : 'text-th-text-secondary hover:bg-th-elevated hover:text-cyan-400'
             }`}
             title="Find free time"
           >
             <Sparkles className={`h-3.5 w-3.5 ${freeTimeLoading ? 'animate-spin' : ''}`} />
-            Free Time
+            <span className="hidden sm:inline">Free Time</span>
           </button>
 
           {/* Add event */}
           <button
             onClick={() => setShowCreateForm(true)}
-            className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs text-th-text-secondary hover:bg-th-elevated hover:text-cyan-400"
+            className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs text-th-text-secondary hover:bg-th-elevated hover:text-cyan-400"
           >
             <Plus className="h-3.5 w-3.5" />
-            Add
+            <span className="hidden sm:inline">Add</span>
           </button>
 
           {/* Sync */}
@@ -230,10 +230,10 @@ export function CalendarTab() {
       {/* ── Date navigation ─────────────────────────────────── */}
       <div className="flex items-center justify-between border-b border-th-border px-4 py-1.5">
         <div className="flex items-center gap-1">
-          <button onClick={() => navigate(-1)} className="rounded p-1 text-th-text-secondary hover:text-th-text">
+          <button onClick={() => navigate(-1)} className="rounded p-2.5 text-th-text-secondary hover:text-th-text">
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <button onClick={() => navigate(1)} className="rounded p-1 text-th-text-secondary hover:text-th-text">
+          <button onClick={() => navigate(1)} className="rounded p-2.5 text-th-text-secondary hover:text-th-text">
             <ChevronRight className="h-4 w-4" />
           </button>
           <span className="ml-2 text-sm font-medium text-th-text">{rangeLabel}</span>
@@ -241,7 +241,7 @@ export function CalendarTab() {
 
         <div className="flex items-center gap-3">
           {calendarNames.length > 0 && (
-            <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2">
               {calendarNames.slice(0, 5).map((name) => {
                 const color = getCalendarColor(name);
                 return (
@@ -314,8 +314,14 @@ export function CalendarTab() {
 
         {/* Chat panel */}
         {chatOpen && (
-          <div className="hidden sm:flex w-80 flex-col border-l border-th-border bg-th-surface">
-            <div className="flex items-center justify-between border-b border-th-border px-3 py-2">
+          <div className="fixed inset-0 z-40 flex flex-col bg-th-surface sm:relative sm:inset-auto sm:z-auto sm:w-80 sm:border-l sm:border-th-border">
+            <div className="flex items-center justify-between border-b border-th-border px-3 py-2 sm:hidden">
+              <span className="text-sm font-semibold text-th-text">Calendar Chat</span>
+              <button onClick={() => setChatOpen(false)} className="rounded p-2 text-th-text-secondary">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="hidden sm:flex items-center justify-between border-b border-th-border px-3 py-2">
               <span className="text-xs font-medium text-th-text-secondary">Ask about your calendar</span>
               <button
                 onClick={() => setChatOpen(false)}

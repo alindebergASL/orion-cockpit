@@ -425,7 +425,10 @@ export function ProjectsTab() {
         ) : detail && (
           <div className="flex-1 overflow-y-auto">
             <div className="flex items-center border-b border-th-border md:hidden">
-              <button onClick={() => setActiveId(null)} className="px-3 py-3 text-xs text-cyan-400">&larr; Back</button>
+              <button onClick={() => setActiveId(null)} className="flex items-center gap-1 px-3 py-3 text-sm text-cyan-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                Back
+              </button>
             </div>
 
             {/* Cover gradient strip */}
@@ -453,7 +456,7 @@ export function ProjectsTab() {
                   </button>
 
                   {showEmojiPicker && (
-                    <div className="absolute left-0 top-full mt-2 z-30 w-72 max-h-80 overflow-y-auto rounded-lg border border-th-border bg-th-surface shadow-xl">
+                    <div className="fixed inset-x-4 bottom-auto z-30 sm:absolute sm:inset-x-auto sm:left-0 sm:top-full mt-2 max-w-72 max-h-80 overflow-y-auto rounded-lg border border-th-border bg-th-surface shadow-xl">
                       <div className="flex items-center justify-between border-b border-th-border px-3 py-2">
                         <span className="text-[11px] font-semibold uppercase tracking-wider text-th-text-secondary">Pick icon</span>
                         {detail.icon && (
@@ -468,7 +471,7 @@ export function ProjectsTab() {
                               <button
                                 key={e}
                                 onClick={() => handleSetIcon(e)}
-                                className="flex h-7 w-7 items-center justify-center rounded hover:bg-th-elevated text-lg"
+                                className="flex h-9 w-9 md:h-7 md:w-7 items-center justify-center rounded hover:bg-th-elevated text-lg"
                               >{e}</button>
                             ))}
                           </div>
@@ -676,7 +679,7 @@ export function ProjectsTab() {
                     {task.assignee && (
                       <span className="text-[10px] text-purple-400">@{task.assignee}</span>
                     )}
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
+                    <div className="flex items-center gap-0.5 md:opacity-0 md:group-hover:opacity-100">
                       <button onClick={() => startEditTask(task)} className="rounded p-1.5 text-th-text-muted hover:text-cyan-400">
                         <Pencil className="h-3 w-3" />
                       </button>

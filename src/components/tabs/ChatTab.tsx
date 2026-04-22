@@ -32,6 +32,7 @@ export function ChatTab() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Conversation[] | null>(null);
+  const [mobileHistoryOpen, setMobileHistoryOpen] = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
   const handleSearch = useCallback((q: string) => {
@@ -139,14 +140,54 @@ export function ChatTab() {
             <h2 className="text-sm font-semibold text-th-text">Chat</h2>
             <p className="text-xs text-th-text-muted">Talking to OpenClaw</p>
           </div>
-          <button
-            onClick={newConversation}
-            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-th-text-secondary hover:bg-th-elevated hover:text-cyan-400"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            New Chat
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setMobileHistoryOpen(!mobileHistoryOpen)}
+              className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-th-text-secondary hover:bg-th-elevated md:hidden"
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              History
+            </button>
+            <button
+              onClick={newConversation}
+              className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-th-text-secondary hover:bg-th-elevated hover:text-cyan-400"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">New Chat</span>
+            </button>
+          </div>
         </div>
+
+        {/* Mobile conversation history */}
+        {mobileHistoryOpen && (
+          <div className="border-b border-th-border bg-th-surface max-h-64 overflow-y-auto md:hidden">
+            <div className="border-b border-th-border px-3 py-2">
+              <div className="flex items-center gap-1.5 rounded-md border border-th-border bg-th-input px-2 py-1.5">
+                <Search className="h-3.5 w-3.5 text-th-text-muted" />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  placeholder="Search..."
+                  className="flex-1 bg-transparent text-sm text-th-text outline-none placeholder-th-text-muted"
+                />
+              </div>
+            </div>
+            {displayConversations.map((conv) => (
+              <button
+                key={conv.id}
+                onClick={() => { switchConversation(conv.id); setMobileHistoryOpen(false); setSearchQuery(''); setSearchResults(null); }}
+                className={`flex w-full items-center gap-2 px-3 py-2.5 text-left ${
+                  activeConversationId === conv.id ? 'bg-th-elevated text-th-text' : 'text-th-text-secondary'
+                }`}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm">{conv.title}</p>
+                  <p className="text-xs text-th-text-muted">{timeAgo(conv.updatedAt)}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
 
         {loadingHistory ? (
           <div className="flex flex-1 items-center justify-center">

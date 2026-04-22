@@ -33,12 +33,12 @@ export function MonthView({ events, month, onEventClick }: Props) {
   const thisMonth = month.getMonth();
 
   return (
-    <div className="flex h-full flex-col overflow-x-auto">
-      <div className="min-w-[600px] flex flex-1 flex-col">
+    <div className="flex h-full flex-col">
+      <div className="min-w-0 flex flex-1 flex-col">
       {/* Header */}
       <div className="grid grid-cols-7 border-b border-th-border">
         {Array.from({ length: 7 }, (_, i) => (
-          <div key={i} className="py-1.5 text-center text-[11px] font-medium text-th-text-secondary">
+          <div key={i} className="py-1.5 text-center text-xs font-medium text-th-text-secondary">
             {dayName(i)}
           </div>
         ))}
@@ -58,7 +58,7 @@ export function MonthView({ events, month, onEventClick }: Props) {
               return (
                 <div
                   key={ci}
-                  className={`flex flex-col overflow-hidden p-1 ${
+                  className={`flex flex-col overflow-hidden p-0.5 md:p-1 ${
                     inMonth ? '' : 'bg-th-surface/40'
                   }`}
                 >
@@ -83,7 +83,7 @@ export function MonthView({ events, month, onEventClick }: Props) {
                         <button
                           key={evt.id ?? `${evt.title}-${evt.start}`}
                           onClick={() => onEventClick?.(evt)}
-                          className={`flex items-center gap-1 truncate rounded px-1 py-0.5 text-left text-[10px] transition-colors hover:brightness-125 ${color.bg}`}
+                          className={`flex items-center gap-1 truncate rounded px-1 py-1 md:py-0.5 text-left text-[10px] transition-colors hover:brightness-125 ${color.bg}`}
                         >
                           <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${color.dot}`} />
                           <span className="truncate text-th-text">{evt.title}</span>

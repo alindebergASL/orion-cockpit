@@ -94,6 +94,7 @@ export function TasksTab() {
   const [sortBy, setSortBy] = useState<SortOption>('dueDate');
   const [groupByList, setGroupByList] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Quick add
   const [quickAdd, setQuickAdd] = useState('');
@@ -332,7 +333,7 @@ export function TasksTab() {
         <div className="flex items-start gap-3 px-4 py-3">
           <button
             onClick={() => handleToggleStatus(task.externalId || task.id, task.status)}
-            className={`mt-0.5 shrink-0 transition-colors hover:text-cyan-400 ${color}`}
+            className={`mt-0.5 shrink-0 p-2 -m-2 transition-colors hover:text-cyan-400 ${color}`}
             title={task.status === 'completed' ? 'Mark open' : 'Mark complete'}
           >
             <StatusIcon className="h-4 w-4" />
@@ -345,14 +346,14 @@ export function TasksTab() {
               >
                 {renderRichText(task.title)}
               </p>
-              <button onClick={() => handleExpandTask(task)} className="shrink-0 rounded p-1 text-th-text-muted hover:text-th-text-secondary">
+              <button onClick={() => handleExpandTask(task)} className="shrink-0 rounded p-2.5 -m-1.5 text-th-text-muted hover:text-th-text-secondary">
                 <Pencil className="h-3 w-3" />
               </button>
             </div>
             {!isExpanded && task.description && (
               <p className="mt-0.5 text-xs text-th-text-muted truncate">{task.description}</p>
             )}
-            <div className="mt-1 flex items-center gap-3 text-[11px] text-th-text-muted">
+            <div className="mt-1 flex items-center gap-3 text-xs text-th-text-muted">
               {task.priority && <span className="capitalize" style={{ color: PRIORITY_HEX[task.priority] }}>{task.priority}</span>}
               {task.dueDate && (
                 <span style={{ color: getDueDateColor(task.dueDate) }}>{formatDueDate(task.dueDate)}</span>
@@ -507,67 +508,77 @@ export function TasksTab() {
 
       {/* Filter bar */}
       <div className="border-b border-th-border px-4 py-2 space-y-1.5">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Filter className="h-3 w-3 text-th-text-muted shrink-0" />
-          {/* Status filter */}
-          {(['all', 'open', 'completed'] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setFilterStatus(s)}
-              className={`rounded px-2 py-0.5 text-[10px] capitalize ${filterStatus === s ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
-            >
-              {s === 'all' ? 'All' : s === 'open' ? `Open (${counts.open})` : `Done (${counts.completed})`}
-            </button>
-          ))}
-          <span className="text-th-border">|</span>
-          {/* Priority filter */}
-          {(['all', 'high', 'medium', 'low'] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setFilterPriority(p)}
-              className={`rounded px-2 py-0.5 text-[10px] capitalize ${filterPriority === p ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
-            >
-              {p === 'all' ? 'Any Priority' : `${p} (${counts[p as keyof typeof counts] || 0})`}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* List filter */}
-          {availableLists.length > 0 && (
-            <>
-              <span className="text-[10px] text-th-text-muted">List:</span>
+        <button
+          onClick={() => setFiltersOpen(!filtersOpen)}
+          className="flex items-center gap-2 text-xs text-th-text-secondary md:hidden"
+        >
+          <Filter className="h-3.5 w-3.5" />
+          Filters
+          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
+        </button>
+        <div className={`${filtersOpen ? 'block' : 'hidden'} md:block space-y-1.5`}>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Filter className="h-3 w-3 text-th-text-muted shrink-0 hidden md:block" />
+            {/* Status filter */}
+            {(['all', 'open', 'completed'] as const).map((s) => (
               <button
-                onClick={() => setFilterList('all')}
-                className={`rounded px-2 py-0.5 text-[10px] ${filterList === 'all' ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
-              >All</button>
-              {availableLists.map((l) => (
+                key={s}
+                onClick={() => setFilterStatus(s)}
+                className={`rounded px-2.5 py-1 text-xs capitalize ${filterStatus === s ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+              >
+                {s === 'all' ? 'All' : s === 'open' ? `Open (${counts.open})` : `Done (${counts.completed})`}
+              </button>
+            ))}
+            <span className="text-th-border">|</span>
+            {/* Priority filter */}
+            {(['all', 'high', 'medium', 'low'] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => setFilterPriority(p)}
+                className={`rounded px-2.5 py-1 text-xs capitalize ${filterPriority === p ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+              >
+                {p === 'all' ? 'Any Priority' : `${p} (${counts[p as keyof typeof counts] || 0})`}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* List filter */}
+            {availableLists.length > 0 && (
+              <>
+                <span className="text-xs text-th-text-muted">List:</span>
                 <button
-                  key={l}
-                  onClick={() => setFilterList(l)}
-                  className={`rounded px-2 py-0.5 text-[10px] ${filterList === l ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
-                >{l}</button>
-              ))}
-              <span className="text-th-border">|</span>
-            </>
-          )}
-          {/* Sort */}
-          <span className="text-[10px] text-th-text-muted">Sort:</span>
-          {(['dueDate', 'priority', 'recent'] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setSortBy(s)}
-              className={`rounded px-2 py-0.5 text-[10px] ${sortBy === s ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
-            >{s === 'dueDate' ? 'Due Date' : s === 'priority' ? 'Priority' : 'Recent'}</button>
-          ))}
-          {availableLists.length > 0 && (
-            <>
-              <span className="text-th-border">|</span>
+                  onClick={() => setFilterList('all')}
+                  className={`rounded px-2.5 py-1 text-xs ${filterList === 'all' ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+                >All</button>
+                {availableLists.map((l) => (
+                  <button
+                    key={l}
+                    onClick={() => setFilterList(l)}
+                    className={`rounded px-2.5 py-1 text-xs ${filterList === l ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+                  >{l}</button>
+                ))}
+                <span className="text-th-border">|</span>
+              </>
+            )}
+            {/* Sort */}
+            <span className="text-xs text-th-text-muted">Sort:</span>
+            {(['dueDate', 'priority', 'recent'] as const).map((s) => (
               <button
-                onClick={() => setGroupByList(!groupByList)}
-                className={`rounded px-2 py-0.5 text-[10px] ${groupByList ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
-              >Group by list</button>
-            </>
-          )}
+                key={s}
+                onClick={() => setSortBy(s)}
+                className={`rounded px-2.5 py-1 text-xs ${sortBy === s ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+              >{s === 'dueDate' ? 'Due Date' : s === 'priority' ? 'Priority' : 'Recent'}</button>
+            ))}
+            {availableLists.length > 0 && (
+              <>
+                <span className="text-th-border">|</span>
+                <button
+                  onClick={() => setGroupByList(!groupByList)}
+                  className={`rounded px-2.5 py-1 text-xs ${groupByList ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+                >Group by list</button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

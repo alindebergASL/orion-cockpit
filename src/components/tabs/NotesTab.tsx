@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Palette,
   Sparkles,
+  ChevronLeft,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -267,7 +268,7 @@ export function NotesTab() {
           {note.isPinned && <Pin className="h-3 w-3 text-amber-400 shrink-0" />}
           <p className="truncate text-sm">{note.title || 'Untitled'}</p>
         </div>
-        <p className="truncate text-[11px] text-th-text-muted mt-0.5">
+        <p className="truncate text-xs text-th-text-muted mt-0.5">
           {note.content.slice(0, 50) || 'Empty note'}
         </p>
       </div>
@@ -377,7 +378,9 @@ export function NotesTab() {
           <>
             {/* Mobile back + toolbar */}
             <div className="flex items-center justify-between border-b border-th-border px-4 py-2">
-              <button onClick={() => setActiveId(null)} className="text-xs text-cyan-400 md:hidden">&larr; Back</button>
+              <button onClick={() => setActiveId(null)} className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-cyan-400 md:hidden">
+                <ChevronLeft className="h-4 w-4" /> Back
+              </button>
               <div className="flex items-center gap-1.5 ml-auto">
                 <button
                   onClick={togglePin}

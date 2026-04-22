@@ -19,14 +19,14 @@ export function WeekView({ events, weekStart, onEventClick }: Props) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   return (
-    <div className="h-full overflow-x-auto">
-    <div className="grid h-full grid-cols-7 divide-x divide-th-border min-w-[600px]">
+    <div className="h-full overflow-y-auto md:overflow-y-hidden">
+    <div className="flex flex-col gap-2 p-2 md:p-0 md:gap-0 md:grid md:h-full md:grid-cols-7 md:divide-x md:divide-th-border">
       {days.map((date, i) => {
         const dayEvents = eventsForDay(events, date);
         const today = isToday(date);
 
         return (
-          <div key={i} className="flex flex-col overflow-hidden">
+          <div key={i} className="flex flex-col overflow-hidden rounded-lg border border-th-border md:border-0 md:rounded-none">
             {/* Day header */}
             <div
               className={`flex flex-col items-center border-b px-2 py-2 ${

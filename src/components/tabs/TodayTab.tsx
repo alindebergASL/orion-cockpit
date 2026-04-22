@@ -350,7 +350,7 @@ export function TodayTab() {
           </div>
           <div className="flex items-center gap-1">
             {/* Day/Week toggle */}
-            <div className="flex rounded-lg border border-th-border text-[11px] mr-1">
+            <div className="flex rounded-lg border border-th-border text-xs mr-1">
               <button
                 onClick={() => setViewMode('day')}
                 className={`rounded-l-lg px-2 py-1 ${viewMode === 'day' ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-secondary'}`}
@@ -397,17 +397,17 @@ export function TodayTab() {
         {isViewingToday && weather && (
           <div className="mb-5 grid grid-cols-3 gap-1.5 md:gap-3">
             <div className="rounded-lg border border-th-border bg-th-surface px-2 py-2.5 md:px-3 md:py-3 text-center">
-              <p className="text-[10px] text-th-text-muted">Now</p>
-              <p className="text-xl font-semibold text-th-text">{weather.current.tempF}&deg;</p>
-              <p className="text-[10px] text-th-text-secondary">{weather.current.description}</p>
+              <p className="text-[11px] text-th-text-muted">Now</p>
+              <p className="text-lg md:text-xl font-semibold text-th-text">{weather.current.tempF}&deg;</p>
+              <p className="text-[11px] text-th-text-secondary">{weather.current.description}</p>
             </div>
             <div className="rounded-lg border border-th-border bg-th-surface px-2 py-2.5 md:px-3 md:py-3 text-center">
-              <p className="text-[10px] text-th-text-muted">Today</p>
-              <p className="text-base font-semibold text-th-text">{weather.today.maxTempF}&deg; / {weather.today.minTempF}&deg;</p>
+              <p className="text-[11px] text-th-text-muted">Today</p>
+              <p className="text-sm md:text-base font-semibold text-th-text">{weather.today.maxTempF}&deg; / {weather.today.minTempF}&deg;</p>
             </div>
             <div className="rounded-lg border border-th-border bg-th-surface px-2 py-2.5 md:px-3 md:py-3 text-center">
-              <p className="text-[10px] text-th-text-muted">Tomorrow</p>
-              <p className="text-base font-semibold text-th-text">{weather.tomorrow.maxTempF}&deg; / {weather.tomorrow.minTempF}&deg;</p>
+              <p className="text-[11px] text-th-text-muted">Tomorrow</p>
+              <p className="text-sm md:text-base font-semibold text-th-text">{weather.tomorrow.maxTempF}&deg; / {weather.tomorrow.minTempF}&deg;</p>
             </div>
           </div>
         )}
@@ -553,7 +553,7 @@ export function TodayTab() {
                 <div key={task.id} className="flex items-center gap-3 px-4 py-2.5">
                   <button
                     onClick={() => handleToggleTask(task.externalId || task.id, task.status)}
-                    className="shrink-0 text-th-text-secondary hover:text-cyan-400 transition-colors"
+                    className="shrink-0 p-2 -m-2 text-th-text-secondary hover:text-cyan-400 transition-colors"
                   >
                     {task.status === 'completed' ? (
                       <CheckCircle2 className="h-4 w-4 text-emerald-400" />
@@ -565,7 +565,7 @@ export function TodayTab() {
                     {task.title}
                   </p>
                   {task.dueDate && (
-                    <span className="text-[10px] text-th-text-muted flex items-center gap-1">
+                    <span className="text-xs text-th-text-muted flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       {new Date(task.dueDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                     </span>
