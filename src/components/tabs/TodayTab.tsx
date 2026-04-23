@@ -80,7 +80,7 @@ function Timeline({ events, date }: { events: CalendarEvent[]; date: Date }) {
   const hours = Array.from({ length: endHour - startHour }, (_, i) => startHour + i);
 
   return (
-    <div className="rounded-lg border border-th-border bg-th-surface overflow-hidden">
+    <div className="rounded-xl border border-th-border bg-th-surface overflow-hidden">
       {/* All-day events */}
       {allDayEvents.length > 0 && (
         <div className="border-b border-th-border px-3 py-2 space-y-1">
@@ -102,7 +102,7 @@ function Timeline({ events, date }: { events: CalendarEvent[]; date: Date }) {
 
           return (
             <div key={hour} className="flex border-b border-th-border/50 min-h-[44px]">
-              <div className="w-14 shrink-0 px-2 py-1 text-[10px] text-th-text-muted text-right pr-3 pt-1.5">
+              <div className="w-14 shrink-0 px-2 py-1 text-xs text-th-text-muted text-right pr-3 pt-1.5">
                 {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
               </div>
               <div className="flex-1 py-0.5 px-1 space-y-0.5">
@@ -112,7 +112,7 @@ function Timeline({ events, date }: { events: CalendarEvent[]; date: Date }) {
                     className="rounded bg-cyan-600/15 border-l-2 border-cyan-500 px-2 py-1"
                   >
                     <p className="text-xs font-medium text-th-text truncate">{e.title}</p>
-                    <p className="text-[10px] text-th-text-muted">
+                    <p className="text-[11px] text-th-text-muted">
                       {formatEventTime(e)} – {formatEndTime(e)}
                       {e.location && ` · ${e.location}`}
                     </p>
@@ -353,18 +353,18 @@ export function TodayTab() {
             <div className="flex rounded-lg border border-th-border text-xs mr-1">
               <button
                 onClick={() => setViewMode('day')}
-                className={`rounded-l-lg px-2 py-1 ${viewMode === 'day' ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-secondary'}`}
+                className={`rounded-l-lg px-2 py-1 ${viewMode === 'day' ? 'bg-th-accent-soft text-th-accent-text' : 'text-th-text-secondary'}`}
               >Day</button>
               <button
                 onClick={() => setViewMode('week')}
-                className={`rounded-r-lg px-2 py-1 ${viewMode === 'week' ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-secondary'}`}
+                className={`rounded-r-lg px-2 py-1 ${viewMode === 'week' ? 'bg-th-accent-soft text-th-accent-text' : 'text-th-text-secondary'}`}
               >Week</button>
             </div>
             <button onClick={() => navigateDate(viewMode === 'week' ? -7 : -1)} className="rounded-lg p-2 text-th-text-secondary hover:bg-th-elevated">
               <ChevronLeft className="h-4 w-4" />
             </button>
             {!isViewingToday && (
-              <button onClick={goToday} className="rounded-lg px-2 py-1 text-xs text-cyan-400 hover:bg-th-elevated">
+              <button onClick={goToday} className="rounded-lg px-2 py-1 text-xs text-th-accent-text hover:bg-th-elevated">
                 Today
               </button>
             )}
@@ -384,7 +384,7 @@ export function TodayTab() {
               <button
                 onClick={handleAiBriefing}
                 disabled={aiBriefingLoading}
-                className={`shrink-0 rounded p-1 ${aiBriefingLoading ? 'text-cyan-400 animate-pulse' : 'text-th-text-muted hover:text-cyan-400'}`}
+                className={`shrink-0 rounded p-1 ${aiBriefingLoading ? 'text-th-ai-text animate-pulse' : 'text-th-text-muted hover:text-th-ai-text'}`}
                 title="AI Briefing"
               >
                 <Sparkles className="h-3.5 w-3.5" />
@@ -396,17 +396,17 @@ export function TodayTab() {
         {/* Weather (today only) */}
         {isViewingToday && weather && (
           <div className="mb-5 grid grid-cols-3 gap-1.5 md:gap-3">
-            <div className="rounded-lg border border-th-border bg-th-surface px-2 py-2.5 md:px-3 md:py-3 text-center">
-              <p className="text-[11px] text-th-text-muted">Now</p>
+            <div className="rounded-xl border border-th-border bg-th-surface px-2 py-2.5 md:px-3 md:py-3 text-center">
+              <p className="text-xs text-th-text-muted">Now</p>
               <p className="text-lg md:text-xl font-semibold text-th-text">{weather.current.tempF}&deg;</p>
-              <p className="text-[11px] text-th-text-secondary">{weather.current.description}</p>
+              <p className="text-xs text-th-text-secondary">{weather.current.description}</p>
             </div>
-            <div className="rounded-lg border border-th-border bg-th-surface px-2 py-2.5 md:px-3 md:py-3 text-center">
-              <p className="text-[11px] text-th-text-muted">Today</p>
+            <div className="rounded-xl border border-th-border bg-th-surface px-2 py-2.5 md:px-3 md:py-3 text-center">
+              <p className="text-xs text-th-text-muted">Today</p>
               <p className="text-sm md:text-base font-semibold text-th-text">{weather.today.maxTempF}&deg; / {weather.today.minTempF}&deg;</p>
             </div>
-            <div className="rounded-lg border border-th-border bg-th-surface px-2 py-2.5 md:px-3 md:py-3 text-center">
-              <p className="text-[11px] text-th-text-muted">Tomorrow</p>
+            <div className="rounded-xl border border-th-border bg-th-surface px-2 py-2.5 md:px-3 md:py-3 text-center">
+              <p className="text-xs text-th-text-muted">Tomorrow</p>
               <p className="text-sm md:text-base font-semibold text-th-text">{weather.tomorrow.maxTempF}&deg; / {weather.tomorrow.minTempF}&deg;</p>
             </div>
           </div>
@@ -480,7 +480,7 @@ export function TodayTab() {
               placeholder={isViewingToday
                 ? "What's your focus today? Priorities, intentions, thoughts..."
                 : "Notes for this day..."}
-              className="w-full min-h-[100px] rounded-lg border border-th-border bg-th-surface px-4 py-3 text-base md:text-sm text-th-text leading-relaxed outline-none placeholder-th-text-muted resize-y focus:border-cyan-600"
+              className="w-full min-h-[100px] rounded-xl border border-th-border bg-th-surface px-4 py-3 text-base md:text-sm text-th-text leading-relaxed outline-none placeholder-th-text-muted resize-y focus:border-th-accent"
             />
           </section>
         ) : (
@@ -495,8 +495,8 @@ export function TodayTab() {
               <button
                 onClick={handleWeeklySummary}
                 disabled={weeklySummaryLoading}
-                className={`flex items-center gap-1 rounded-md border border-th-border px-2 py-1 text-[11px] ${
-                  weeklySummaryLoading ? 'text-cyan-400 animate-pulse' : 'text-th-text-secondary hover:bg-th-elevated hover:text-cyan-400'
+                className={`flex items-center gap-1 rounded-md border border-th-border px-2 py-1 text-xs ${
+                  weeklySummaryLoading ? 'text-th-ai-text animate-pulse' : 'text-th-text-secondary hover:bg-th-elevated hover:text-th-ai-text'
                 }`}
                 title="AI weekly recap"
               >
@@ -505,9 +505,9 @@ export function TodayTab() {
               </button>
             </div>
             {weeklySummary !== null && (
-              <div className="mb-2 rounded-lg border border-cyan-600/30 bg-cyan-600/5 px-4 py-3">
+              <div className="mb-2 rounded-xl border border-th-ai/20 bg-th-ai-soft px-4 py-3">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="flex items-center gap-1.5 text-xs font-medium text-cyan-400">
+                  <span className="flex items-center gap-1.5 text-xs font-medium text-th-ai-text">
                     <Sparkles className={`h-3 w-3 ${weeklySummaryLoading ? 'animate-pulse' : ''}`} />
                     Weekly Recap
                     {weeklySummaryLoading && <span className="text-th-text-muted font-normal">· streaming</span>}
@@ -528,7 +528,7 @@ export function TodayTab() {
               value={weeklyNote}
               onChange={(e) => handleWeeklyNoteChange(e.target.value)}
               placeholder="What went well this week? What's blocked? What's the plan for next week?"
-              className="w-full min-h-[150px] rounded-lg border border-th-border bg-th-surface px-4 py-3 text-base md:text-sm text-th-text leading-relaxed outline-none placeholder-th-text-muted resize-y focus:border-cyan-600"
+              className="w-full min-h-[150px] rounded-xl border border-th-border bg-th-surface px-4 py-3 text-base md:text-sm text-th-text leading-relaxed outline-none placeholder-th-text-muted resize-y focus:border-th-accent"
             />
           </section>
         )}
@@ -542,7 +542,7 @@ export function TodayTab() {
             </h3>
           </div>
           {todayEvents.length === 0 ? (
-            <div className="rounded-lg border border-th-border bg-th-surface px-4 py-6 text-center text-sm text-th-text-muted">
+            <div className="rounded-xl border border-th-border bg-th-surface px-4 py-6 text-center text-sm text-th-text-muted">
               No events scheduled.
             </div>
           ) : (
@@ -559,11 +559,11 @@ export function TodayTab() {
             </h3>
           </div>
           {activeTasks.length === 0 ? (
-            <div className="rounded-lg border border-th-border bg-th-surface px-4 py-6 text-center text-sm text-th-text-muted">
+            <div className="rounded-xl border border-th-border bg-th-surface px-4 py-6 text-center text-sm text-th-text-muted">
               All clear!
             </div>
           ) : (
-            <div className="rounded-lg border border-th-border bg-th-surface divide-y divide-th-border">
+            <div className="rounded-xl border border-th-border bg-th-surface divide-y divide-th-border">
               {activeTasks.slice(0, 8).map((task) => (
                 <div key={task.id} className="flex items-center gap-3 px-4 py-2.5">
                   <button
@@ -593,17 +593,17 @@ export function TodayTab() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <button onClick={() => navigateTab('calendar')} className="flex items-center gap-2 rounded-lg border border-th-border bg-th-surface px-3 py-2.5 text-xs text-th-text-secondary hover:bg-th-elevated transition-colors">
-            <Plus className="h-3.5 w-3.5 text-cyan-400" /> New Event
+          <button onClick={() => navigateTab('calendar')} className="flex items-center gap-2 rounded-xl border border-th-border bg-th-surface px-3 py-2.5 text-xs text-th-text-secondary hover:bg-th-elevated transition-colors">
+            <Plus className="h-3.5 w-3.5 text-th-accent-text" /> New Event
           </button>
-          <button onClick={() => navigateTab('tasks')} className="flex items-center gap-2 rounded-lg border border-th-border bg-th-surface px-3 py-2.5 text-xs text-th-text-secondary hover:bg-th-elevated transition-colors">
-            <ListChecks className="h-3.5 w-3.5 text-cyan-400" /> Add Task
+          <button onClick={() => navigateTab('tasks')} className="flex items-center gap-2 rounded-xl border border-th-border bg-th-surface px-3 py-2.5 text-xs text-th-text-secondary hover:bg-th-elevated transition-colors">
+            <ListChecks className="h-3.5 w-3.5 text-th-accent-text" /> Add Task
           </button>
-          <button onClick={() => navigateTab('notes')} className="flex items-center gap-2 rounded-lg border border-th-border bg-th-surface px-3 py-2.5 text-xs text-th-text-secondary hover:bg-th-elevated transition-colors">
-            <StickyNote className="h-3.5 w-3.5 text-cyan-400" /> New Note
+          <button onClick={() => navigateTab('notes')} className="flex items-center gap-2 rounded-xl border border-th-border bg-th-surface px-3 py-2.5 text-xs text-th-text-secondary hover:bg-th-elevated transition-colors">
+            <StickyNote className="h-3.5 w-3.5 text-th-accent-text" /> New Note
           </button>
-          <button onClick={() => navigateTab('chat')} className="flex items-center gap-2 rounded-lg border border-th-border bg-th-surface px-3 py-2.5 text-xs text-th-text-secondary hover:bg-th-elevated transition-colors">
-            <MessageSquare className="h-3.5 w-3.5 text-cyan-400" /> Ask OpenClaw
+          <button onClick={() => navigateTab('chat')} className="flex items-center gap-2 rounded-xl border border-th-border bg-th-surface px-3 py-2.5 text-xs text-th-text-secondary hover:bg-th-elevated transition-colors">
+            <MessageSquare className="h-3.5 w-3.5 text-th-accent-text" /> Ask OpenClaw
           </button>
         </div>
       </div>

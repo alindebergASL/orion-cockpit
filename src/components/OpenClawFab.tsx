@@ -79,7 +79,7 @@ export function OpenClawFab({ activeTab }: Props) {
           >
             <div className="flex items-center justify-between border-b border-th-border px-4 py-3">
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-600/20 text-cyan-400">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-th-ai-soft text-th-ai-text">
                   <Sparkles className="h-4 w-4" />
                 </div>
                 <div>

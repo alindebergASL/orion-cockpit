@@ -395,26 +395,26 @@ export function TasksTab() {
             />
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-1">
-                <span className="text-[10px] text-th-text-muted mr-1">Priority:</span>
+                <span className="text-xs text-th-text-muted mr-1">Priority:</span>
                 {(['low', 'medium', 'high'] as const).map((p) => (
                   <button
                     key={p}
                     onClick={() => { setEditPriority(p); saveTaskEdit(task.id, 'priority', p); }}
-                    className={`rounded px-2 py-0.5 text-[10px] capitalize ${editPriority === p ? 'text-white' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+                    className={`rounded px-2 py-0.5 text-xs capitalize ${editPriority === p ? 'text-white' : 'text-th-text-muted hover:text-th-text-secondary'}`}
                     style={editPriority === p ? { backgroundColor: PRIORITY_HEX[p] } : {}}
                   >{p}</button>
                 ))}
               </div>
               <div className="flex items-center gap-1">
-                <span className="text-[10px] text-th-text-muted mr-1">Due:</span>
+                <span className="text-xs text-th-text-muted mr-1">Due:</span>
                 <input
                   type="date"
                   value={editDueDate}
                   onChange={(e) => { setEditDueDate(e.target.value); saveTaskEdit(task.id, 'dueDate', e.target.value); }}
-                  className="rounded border border-th-border bg-th-input px-1.5 py-0.5 text-[10px] text-th-text outline-none"
+                  className="rounded border border-th-border bg-th-input px-1.5 py-0.5 text-xs text-th-text outline-none"
                 />
               </div>
-              <button onClick={() => setExpandedTaskId(null)} className="ml-auto text-[10px] text-th-text-muted hover:text-th-text-secondary">
+              <button onClick={() => setExpandedTaskId(null)} className="ml-auto text-xs text-th-text-muted hover:text-th-text-secondary">
                 Close
               </button>
             </div>
@@ -432,7 +432,7 @@ export function TasksTab() {
           <div>
             <h2 className="text-sm font-semibold text-th-text">Tasks</h2>
             {syncedAt && (
-              <span className="flex items-center gap-1 text-[10px] text-th-text-muted">
+              <span className="flex items-center gap-1 text-xs text-th-text-muted">
                 <Clock className="h-3 w-3" />
                 Synced {timeAgo(syncedAt)}
               </span>
@@ -443,7 +443,7 @@ export function TasksTab() {
           <button
             onClick={handleAiSuggest}
             disabled={aiSuggesting}
-            className="flex items-center gap-1 rounded-md bg-purple-600/15 px-2 py-1.5 text-[11px] text-purple-400 hover:bg-purple-600/25 disabled:opacity-50"
+            className="flex items-center gap-1 rounded-md bg-th-ai-soft px-2 py-1.5 text-xs text-th-ai-text hover:bg-th-ai-soft disabled:opacity-50"
             title="AI: What should I do next?"
           >
             <Zap className={`h-3 w-3 ${aiSuggesting ? 'animate-pulse' : ''}`} />
@@ -452,7 +452,7 @@ export function TasksTab() {
           <button
             onClick={handleAiPrioritize}
             disabled={aiPrioritizing}
-            className="flex items-center gap-1 rounded-md bg-purple-600/15 px-2 py-1.5 text-[11px] text-purple-400 hover:bg-purple-600/25 disabled:opacity-50"
+            className="flex items-center gap-1 rounded-md bg-th-ai-soft px-2 py-1.5 text-xs text-th-ai-text hover:bg-th-ai-soft disabled:opacity-50"
             title="AI: Prioritize my tasks"
           >
             <Sparkles className={`h-3 w-3 ${aiPrioritizing ? 'animate-pulse' : ''}`} />
@@ -471,11 +471,11 @@ export function TasksTab() {
 
       {/* AI Suggestion card */}
       {aiSuggestion && aiSuggestion.taskId && (
-        <div className="mx-4 mt-3 rounded-xl border border-purple-500/20 bg-purple-600/5 p-3">
+        <div className="mx-4 mt-3 rounded-xl border border-th-ai/20 bg-th-ai-soft p-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 mb-1">
-              <Zap className="h-4 w-4 text-purple-400" />
-              <span className="text-xs font-semibold text-purple-400">Do this next</span>
+              <Zap className="h-4 w-4 text-th-ai-text" />
+              <span className="text-xs font-semibold text-th-ai-text">Do this next</span>
             </div>
             <button onClick={() => setAiSuggestion(null)} className="text-th-text-muted hover:text-th-text-secondary">
               <X className="h-3.5 w-3.5" />
@@ -488,14 +488,14 @@ export function TasksTab() {
 
       {/* AI Priorities result */}
       {aiPriorities && (
-        <div className="mx-4 mt-3 rounded-xl border border-purple-500/20 bg-purple-600/5 p-3">
+        <div className="mx-4 mt-3 rounded-xl border border-th-ai/20 bg-th-ai-soft p-3">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-purple-400" />
-              <span className="text-xs font-semibold text-purple-400">Suggested Priorities</span>
+              <Sparkles className="h-4 w-4 text-th-ai-text" />
+              <span className="text-xs font-semibold text-th-ai-text">Suggested Priorities</span>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={handleApplyAllPriorities} className="rounded bg-purple-600/20 px-2 py-0.5 text-[10px] text-purple-300 hover:bg-purple-600/30">
+              <button onClick={handleApplyAllPriorities} className="rounded bg-th-ai-soft px-2 py-0.5 text-xs text-th-ai-text hover:bg-th-ai-soft">
                 Apply All
               </button>
               <button onClick={() => setAiPriorities(null)} className="text-th-text-muted hover:text-th-text-secondary">
@@ -511,7 +511,7 @@ export function TasksTab() {
                 <span className="text-th-text-muted truncate max-w-[140px]">{item.reasoning}</span>
                 <button
                   onClick={() => handleApplyPriority(item.id, item.suggestedPriority)}
-                  className="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-cyan-400 hover:bg-th-elevated"
+                  className="shrink-0 rounded px-1.5 py-0.5 text-xs text-th-accent-text hover:bg-th-elevated"
                 >
                   Apply
                 </button>
@@ -539,7 +539,7 @@ export function TasksTab() {
               <button
                 key={s}
                 onClick={() => setFilterStatus(s)}
-                className={`rounded-full px-2.5 py-1 text-xs capitalize ${filterStatus === s ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+                className={`rounded-full px-2.5 py-1 text-xs capitalize ${filterStatus === s ? 'bg-th-accent-soft text-th-accent-text' : 'text-th-text-muted hover:text-th-text-secondary'}`}
               >
                 {s === 'all' ? 'All' : s === 'open' ? `Open (${counts.open})` : `Done (${counts.completed})`}
               </button>
@@ -550,7 +550,7 @@ export function TasksTab() {
               <button
                 key={p}
                 onClick={() => setFilterPriority(p)}
-                className={`rounded-full px-2.5 py-1 text-xs capitalize ${filterPriority === p ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+                className={`rounded-full px-2.5 py-1 text-xs capitalize ${filterPriority === p ? 'bg-th-accent-soft text-th-accent-text' : 'text-th-text-muted hover:text-th-text-secondary'}`}
               >
                 {p === 'all' ? 'Any Priority' : `${p} (${counts[p as keyof typeof counts] || 0})`}
               </button>
@@ -563,13 +563,13 @@ export function TasksTab() {
                 <span className="text-xs text-th-text-muted">List:</span>
                 <button
                   onClick={() => setFilterList('all')}
-                  className={`rounded px-2.5 py-1 text-xs ${filterList === 'all' ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+                  className={`rounded px-2.5 py-1 text-xs ${filterList === 'all' ? 'bg-th-accent-soft text-th-accent-text' : 'text-th-text-muted hover:text-th-text-secondary'}`}
                 >All</button>
                 {availableLists.map((l) => (
                   <button
                     key={l}
                     onClick={() => setFilterList(l)}
-                    className={`rounded px-2.5 py-1 text-xs ${filterList === l ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+                    className={`rounded px-2.5 py-1 text-xs ${filterList === l ? 'bg-th-accent-soft text-th-accent-text' : 'text-th-text-muted hover:text-th-text-secondary'}`}
                   >{l}</button>
                 ))}
                 <span className="text-th-border">|</span>
@@ -581,7 +581,7 @@ export function TasksTab() {
               <button
                 key={s}
                 onClick={() => setSortBy(s)}
-                className={`rounded-full px-2.5 py-1 text-xs ${sortBy === s ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+                className={`rounded-full px-2.5 py-1 text-xs ${sortBy === s ? 'bg-th-accent-soft text-th-accent-text' : 'text-th-text-muted hover:text-th-text-secondary'}`}
               >{s === 'dueDate' ? 'Due Date' : s === 'priority' ? 'Priority' : 'Recent'}</button>
             ))}
             {availableLists.length > 0 && (
@@ -589,7 +589,7 @@ export function TasksTab() {
                 <span className="text-th-border">|</span>
                 <button
                   onClick={() => setGroupByList(!groupByList)}
-                  className={`rounded-full px-2.5 py-1 text-xs ${groupByList ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+                  className={`rounded-full px-2.5 py-1 text-xs ${groupByList ? 'bg-th-accent-soft text-th-accent-text' : 'text-th-text-muted hover:text-th-text-secondary'}`}
                 >Group by list</button>
               </>
             )}

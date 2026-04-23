@@ -657,7 +657,7 @@ export function ProjectsTab() {
               <div className="rounded-xl border border-th-border bg-gradient-to-br from-th-surface to-th-elevated/30 p-4">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-purple-400" />
+                    <Sparkles className="h-4 w-4 text-th-ai-text" />
                     <h3 className="text-xs font-semibold uppercase tracking-wider text-th-text-secondary">AI Insights</h3>
                     {digest && <HealthBadge health={digest.health} />}
                   </div>
@@ -822,7 +822,7 @@ export function ProjectsTab() {
                   <button
                     onClick={handleGeneratePlan}
                     disabled={planLoading || !detail.title}
-                    className="flex items-center gap-1 rounded-md bg-purple-600/15 px-2 py-1 text-[11px] text-purple-400 hover:bg-purple-600/25 disabled:opacity-40"
+                    className="flex items-center gap-1 rounded-md bg-th-ai-soft px-2 py-1 text-xs text-th-ai-text hover:bg-th-ai-soft disabled:opacity-40"
                     title="Generate tasks from project goal using AI"
                   >
                     <Sparkles className={`h-3 w-3 ${planLoading ? 'animate-pulse' : ''}`} />

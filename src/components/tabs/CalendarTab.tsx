@@ -168,7 +168,7 @@ export function CalendarTab() {
             <button
               onClick={() => setView('week')}
               className={`rounded-l-lg px-2.5 py-1.5 ${
-                view === 'week' ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-secondary hover:text-th-text-secondary'
+                view === 'week' ? 'bg-th-accent-soft text-th-accent-text' : 'text-th-text-secondary hover:text-th-text-secondary'
               }`}
             >
               Week
@@ -176,7 +176,7 @@ export function CalendarTab() {
             <button
               onClick={() => setView('month')}
               className={`rounded-r-lg px-2.5 py-1.5 ${
-                view === 'month' ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-secondary hover:text-th-text-secondary'
+                view === 'month' ? 'bg-th-accent-soft text-th-accent-text' : 'text-th-text-secondary hover:text-th-text-secondary'
               }`}
             >
               Month
@@ -187,7 +187,7 @@ export function CalendarTab() {
           <button
             onClick={() => setChatOpen((o) => !o)}
             className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${
-              chatOpen ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-secondary hover:text-th-text-secondary'
+              chatOpen ? 'bg-th-accent-soft text-th-accent-text' : 'text-th-text-secondary hover:text-th-text-secondary'
             }`}
           >
             <MessageSquare className="h-3.5 w-3.5" />
@@ -199,7 +199,7 @@ export function CalendarTab() {
             onClick={handleFreeTime}
             disabled={freeTimeLoading}
             className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${
-              freeTimeLoading ? 'text-cyan-400 animate-pulse' : 'text-th-text-secondary hover:bg-th-elevated hover:text-cyan-400'
+              freeTimeLoading ? 'text-th-ai-text animate-pulse' : 'text-th-text-secondary hover:bg-th-elevated hover:text-th-ai-text'
             }`}
             title="Find free time"
           >
@@ -210,7 +210,7 @@ export function CalendarTab() {
           {/* Add event */}
           <button
             onClick={() => setShowCreateForm(true)}
-            className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs text-th-text-secondary hover:bg-th-elevated hover:text-cyan-400"
+            className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs text-th-text-secondary hover:bg-th-elevated hover:text-th-accent-text"
           >
             <Plus className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Add</span>
@@ -265,9 +265,9 @@ export function CalendarTab() {
 
       {/* ── Free Time Results ───────────────────────────────── */}
       {freeTimeSlots && (
-        <div className="border-b border-cyan-600/30 bg-cyan-600/5 px-4 py-3">
+        <div className="border-b border-th-ai/20 bg-th-ai-soft px-4 py-3">
           <div className="flex items-center justify-between mb-2">
-            <span className="flex items-center gap-1.5 text-xs font-medium text-cyan-400">
+            <span className="flex items-center gap-1.5 text-xs font-medium text-th-ai-text">
               <Sparkles className="h-3 w-3" />
               Free Time This Week
             </span>
@@ -431,7 +431,7 @@ function EventDetail({ event, onClose }: { event: CalendarEvent; onClose: () => 
           {prepText === null && !prepLoading ? (
             <button
               onClick={handleMeetingPrep}
-              className="flex items-center gap-1.5 rounded-lg bg-cyan-600/10 px-3 py-2 text-xs text-cyan-400 hover:bg-cyan-600/20"
+              className="flex items-center gap-1.5 rounded-lg bg-th-ai-soft px-3 py-2 text-xs text-th-ai-text hover:bg-th-ai-soft"
             >
               <Sparkles className="h-3.5 w-3.5" />
               Meeting Prep
@@ -439,8 +439,8 @@ function EventDetail({ event, onClose }: { event: CalendarEvent; onClose: () => 
           ) : (
             <div>
               <div className="flex items-center gap-1.5 mb-2">
-                <Sparkles className={`h-3 w-3 text-cyan-400 ${prepLoading ? 'animate-pulse' : ''}`} />
-                <span className="text-xs font-medium text-cyan-400">
+                <Sparkles className={`h-3 w-3 text-th-ai-text ${prepLoading ? 'animate-pulse' : ''}`} />
+                <span className="text-xs font-medium text-th-ai-text">
                   Meeting Prep{prepLoading && ' · streaming'}
                 </span>
               </div>

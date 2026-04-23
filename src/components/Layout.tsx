@@ -86,7 +86,7 @@ export function Layout({ activeTab, onTabChange, children }: LayoutProps) {
         <div className="fixed inset-0 z-10 bg-black/50 md:hidden" onClick={() => setMobileMenuOpen(false)} />
       )}
       <aside className={`${mobileMenuOpen ? 'fixed left-0 top-0 bottom-0 z-20 pt-14 w-20 overflow-y-auto' : 'hidden'} md:relative md:flex md:pt-0 w-20 flex-col items-center justify-between border-r border-th-border bg-th-surface py-4`}>
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex flex-col items-center gap-1.5">
           {/* Logo (desktop only) */}
           <div className="mb-6 hidden md:flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-violet-600 text-sm font-bold tracking-tight text-white shadow-md shadow-cyan-600/20">
             OC
@@ -97,9 +97,9 @@ export function Layout({ activeTab, onTabChange, children }: LayoutProps) {
             <button
               key={id}
               onClick={() => handleTabChange(id)}
-              className={`flex w-16 flex-col items-center gap-1 rounded-lg px-2 py-2.5 text-xs transition-colors ${
+              className={`flex w-16 flex-col items-center gap-1.5 rounded-lg px-2 py-2.5 text-xs transition-colors ${
                 activeTab === id
-                  ? 'bg-cyan-600/20 text-cyan-400'
+                  ? 'bg-th-accent-soft text-th-accent-text'
                   : 'text-th-text-secondary hover:bg-th-elevated hover:text-th-text'
               }`}
             >
@@ -111,7 +111,7 @@ export function Layout({ activeTab, onTabChange, children }: LayoutProps) {
           {/* Search button */}
           <button
             onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
-            className="flex w-16 flex-col items-center gap-1 rounded-lg px-2 py-2.5 text-xs text-th-text-secondary hover:bg-th-elevated hover:text-th-text transition-colors"
+            className="flex w-16 flex-col items-center gap-1.5 rounded-lg px-2 py-2.5 text-xs text-th-text-secondary hover:bg-th-elevated hover:text-th-text transition-colors"
             title="Search (Ctrl+K)"
           >
             <Search className="h-5 w-5" />
@@ -157,7 +157,7 @@ export function Layout({ activeTab, onTabChange, children }: LayoutProps) {
 
           {/* Connection status */}
           <div
-            className="flex flex-col items-center gap-1 text-[11px]"
+            className="flex flex-col items-center gap-1 text-xs"
             title={connected ? 'Connected to backend' : 'Disconnected'}
           >
             {connected ? (
@@ -172,10 +172,10 @@ export function Layout({ activeTab, onTabChange, children }: LayoutProps) {
 
           {/* User info + logout */}
           <div className="flex flex-col items-center gap-1">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-th-elevated text-[10px] font-medium text-th-text">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-th-elevated text-xs font-medium text-th-text">
               {initials}
             </div>
-            <span className="max-w-[64px] truncate text-[11px] text-th-text-muted">
+            <span className="max-w-[64px] truncate text-xs text-th-text-muted">
               {user?.displayName}
             </span>
             <button

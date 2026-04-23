@@ -359,18 +359,18 @@ export function NotesTab() {
         <div className="border-b border-th-border px-3 py-1.5 space-y-1">
           <div className="flex items-center gap-1 flex-wrap">
             <FolderOpen className="h-3 w-3 text-th-text-muted shrink-0" />
-            <button onClick={() => setFilterFolder('all')} className={`rounded px-1.5 py-0.5 text-[10px] ${filterFolder === 'all' ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}>All</button>
+            <button onClick={() => setFilterFolder('all')} className={`rounded px-1.5 py-0.5 text-[10px] ${filterFolder === 'all' ? 'bg-th-accent-soft text-th-accent-text' : 'text-th-text-muted hover:text-th-text-secondary'}`}>All</button>
             {folders.map((f) => (
-              <button key={f} onClick={() => setFilterFolder(f)} className={`rounded px-1.5 py-0.5 text-[10px] ${filterFolder === f ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}>{f}</button>
+              <button key={f} onClick={() => setFilterFolder(f)} className={`rounded px-1.5 py-0.5 text-[10px] ${filterFolder === f ? 'bg-th-accent-soft text-th-accent-text' : 'text-th-text-muted hover:text-th-text-secondary'}`}>{f}</button>
             ))}
-            <button onClick={() => setFilterFolder('unfiled')} className={`rounded px-1.5 py-0.5 text-[10px] ${filterFolder === 'unfiled' ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}>Unfiled</button>
+            <button onClick={() => setFilterFolder('unfiled')} className={`rounded px-1.5 py-0.5 text-[10px] ${filterFolder === 'unfiled' ? 'bg-th-accent-soft text-th-accent-text' : 'text-th-text-muted hover:text-th-text-secondary'}`}>Unfiled</button>
           </div>
           {allTags.length > 0 && (
             <div className="flex items-center gap-1 flex-wrap">
               <Hash className="h-3 w-3 text-th-text-muted shrink-0" />
-              <button onClick={() => setFilterTag('all')} className={`rounded px-1.5 py-0.5 text-[10px] ${filterTag === 'all' ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}>All</button>
+              <button onClick={() => setFilterTag('all')} className={`rounded px-1.5 py-0.5 text-[10px] ${filterTag === 'all' ? 'bg-th-accent-soft text-th-accent-text' : 'text-th-text-muted hover:text-th-text-secondary'}`}>All</button>
               {allTags.map((t) => (
-                <button key={t} onClick={() => setFilterTag(t)} className={`rounded px-1.5 py-0.5 text-[10px] ${filterTag === t ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}>{t}</button>
+                <button key={t} onClick={() => setFilterTag(t)} className={`rounded px-1.5 py-0.5 text-[10px] ${filterTag === t ? 'bg-th-accent-soft text-th-accent-text' : 'text-th-text-muted hover:text-th-text-secondary'}`}>{t}</button>
               ))}
             </div>
           )}
@@ -478,7 +478,7 @@ export function NotesTab() {
                   <button
                     onClick={() => setShowAiMenu(!showAiMenu)}
                     disabled={!!aiLoading}
-                    className={`rounded p-1.5 ${aiLoading ? 'text-cyan-400 animate-pulse' : 'text-th-text-muted hover:text-cyan-400'}`}
+                    className={`rounded p-1.5 ${aiLoading ? 'text-th-ai-text animate-pulse' : 'text-th-text-muted hover:text-th-ai-text'}`}
                     title="AI Actions"
                   >
                     <Sparkles className="h-3.5 w-3.5" />
@@ -619,9 +619,9 @@ export function NotesTab() {
 
             {/* AI Result */}
             {aiResult && (
-              <div className="border-t border-cyan-600/30 bg-cyan-600/5 px-6 py-3 max-h-64 overflow-y-auto">
+              <div className="border-t border-th-ai/20 bg-th-ai-soft px-6 py-3 max-h-64 overflow-y-auto">
                 <div className="flex items-center justify-between mb-2 sticky top-0 bg-th-surface/0">
-                  <span className="flex items-center gap-1.5 text-xs font-medium text-cyan-400">
+                  <span className="flex items-center gap-1.5 text-xs font-medium text-th-ai-text">
                     <Sparkles className={`h-3 w-3 ${aiLoading ? 'animate-pulse' : ''}`} />
                     {aiResult.type === 'summary' ? 'Summary' : 'Expanded'}
                     {aiLoading && <span className="text-th-text-muted font-normal">· streaming</span>}
@@ -630,14 +630,14 @@ export function NotesTab() {
                     <button
                       onClick={appendAiResult}
                       disabled={!aiResult.text || !!aiLoading}
-                      className="rounded border border-cyan-600 px-2 py-0.5 text-[11px] text-cyan-400 hover:bg-cyan-600/10 disabled:opacity-40"
+                      className="rounded border border-th-ai px-2 py-0.5 text-xs text-th-ai-text hover:bg-th-ai-soft disabled:opacity-40"
                     >
                       Append
                     </button>
                     <button
                       onClick={replaceWithAiResult}
                       disabled={!aiResult.text || !!aiLoading}
-                      className="rounded px-2 py-0.5 text-[11px] bg-cyan-600 text-white hover:bg-cyan-500 disabled:opacity-40"
+                      className="rounded px-2 py-0.5 text-xs bg-th-ai text-white hover:bg-th-ai disabled:opacity-40"
                     >
                       Replace
                     </button>
