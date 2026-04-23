@@ -64,9 +64,9 @@ export function MonthView({ events, month, onEventClick }: Props) {
                 >
                   {/* Date number */}
                   <span
-                    className={`mb-0.5 flex h-6 w-6 items-center justify-center self-end rounded-full text-xs ${
+                    className={`mb-0.5 flex h-6 w-6 items-center justify-center self-end rounded-full text-xs transition-colors ${
                       today
-                        ? 'bg-cyan-600 font-bold text-white'
+                        ? 'bg-cyan-600 font-bold text-white shadow-sm shadow-cyan-600/30'
                         : inMonth
                           ? 'text-th-text-secondary'
                           : 'text-th-text-muted'
@@ -83,7 +83,7 @@ export function MonthView({ events, month, onEventClick }: Props) {
                         <button
                           key={evt.id ?? `${evt.title}-${evt.start}`}
                           onClick={() => onEventClick?.(evt)}
-                          className={`flex items-center gap-1 truncate rounded px-1 py-1 md:py-0.5 text-left text-[10px] transition-colors hover:brightness-125 ${color.bg}`}
+                          className={`flex items-center gap-1 truncate rounded-full px-1.5 py-1 md:py-0.5 text-left text-[10px] transition-colors hover:brightness-125 ${color.bg}`}
                         >
                           <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${color.dot}`} />
                           <span className="truncate text-th-text">{evt.title}</span>

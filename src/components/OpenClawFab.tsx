@@ -11,34 +11,34 @@ interface Props {
 
 const SUGGESTIONS_BY_TAB: Record<TabId, string[]> = {
   today: [
-    "What's my day looking like?",
-    'Summarize my week so far',
-    'What should I focus on right now?',
+    'Plan my day around what matters most',
+    'Summarize this week so far',
+    'Find focus time today',
   ],
   chat: [
-    "What's on my calendar today?",
     'Show my open tasks',
     'Create a reminder',
+    'Help me plan my week',
   ],
   calendar: [
-    'Am I free tomorrow afternoon?',
-    "What's my busiest day this week?",
-    'Block 2 hours for focus work',
+    'Find free time tomorrow',
+    'Block focus time this week',
+    'Move prep tasks into open slots',
   ],
   tasks: [
-    'What should I do next?',
-    'Which tasks are overdue?',
-    'Group my tasks by priority',
+    'Pick my next task',
+    'Add dates to untimed tasks',
+    'Turn these into a plan',
   ],
   notes: [
-    'Summarize my recent notes',
-    'What are the themes in my notes?',
-    'Find a note about…',
+    'Extract tasks from this note',
+    'Summarize key points',
+    'Find contradictions',
   ],
   projects: [
-    'Which project needs attention?',
-    "What's blocking my projects?",
-    'Generate tasks for my active project',
+    'Summarize project health',
+    'Create next actions',
+    'Build a timeline',
   ],
 };
 
@@ -58,15 +58,16 @@ export function OpenClawFab({ activeTab }: Props) {
 
   return (
     <>
-      {/* Floating button */}
+      {/* Floating button — icon on mobile, labeled on desktop */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-cyan-600 text-white shadow-xl hover:bg-cyan-500 transition-all hover:scale-105 active:scale-95"
+          className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 flex items-center justify-center gap-2 rounded-full bg-cyan-600 text-white shadow-xl hover:bg-cyan-500 transition-all hover:scale-105 active:scale-95 h-12 w-12 md:h-auto md:w-auto md:px-4 md:py-2.5"
           title="Ask OpenClaw"
           aria-label="Ask OpenClaw"
         >
-          <Sparkles className="h-5 w-5" />
+          <Sparkles className="h-5 w-5 md:h-4 md:w-4" />
+          <span className="hidden md:inline text-sm font-medium">OpenClaw</span>
         </button>
       )}
 

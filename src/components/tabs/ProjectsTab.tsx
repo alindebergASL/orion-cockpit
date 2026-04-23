@@ -533,7 +533,7 @@ export function ProjectsTab() {
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-th-border-strong border-t-cyan-400" />
           </div>
         ) : detail && (
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto [&>*:not(:first-child)]:mx-auto [&>*:not(:first-child)]:max-w-3xl">
             <div className="flex items-center border-b border-th-border md:hidden">
               <button onClick={() => setActiveId(null)} className="flex items-center gap-1 px-3 py-3 text-sm text-cyan-400">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>

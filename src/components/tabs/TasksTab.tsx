@@ -331,17 +331,16 @@ export function TasksTab() {
   const renderTask = (task: Task) => {
     const StatusIcon = statusIcons[task.status];
     const color = statusColors[task.status];
-    const borderHex = PRIORITY_HEX[task.priority || 'low'] || '#334155';
+    const priorityColor = PRIORITY_HEX[task.priority || ''];
     const isExpanded = expandedTaskId === task.id;
     const isHighlighted = aiSuggestion?.taskId != null && (aiSuggestion.taskId === task.id || String(aiSuggestion.taskId) === String(task.id));
 
     return (
       <div
         key={String(task.id)}
-        className={`border-b border-b-th-border transition-colors ${isHighlighted ? 'bg-cyan-600/5' : ''}`}
-        style={{ borderLeftWidth: '4px', borderLeftColor: borderHex }}
+        className={`rounded-xl border border-th-border bg-th-surface transition-colors ${isHighlighted ? 'ring-1 ring-cyan-500/40' : ''}`}
       >
-        <div className="flex items-start gap-3 px-4 py-3">
+        <div className="flex items-start gap-3 px-4 py-3.5">
           <button
             onClick={() => handleToggleStatus(task.externalId || task.id, task.status)}
             className={`mt-0.5 shrink-0 p-2 -m-2 transition-colors hover:text-cyan-400 ${color}`}
@@ -351,6 +350,9 @@ export function TasksTab() {
           </button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
+              {priorityColor && (
+                <span className="shrink-0 h-2 w-2 rounded-full" style={{ backgroundColor: priorityColor }} />
+              )}
               <p
                 className={`flex-1 text-sm cursor-pointer ${task.status === 'completed' ? 'text-th-text-secondary line-through' : 'text-th-text'}`}
                 onClick={() => handleExpandTask(task)}
@@ -364,12 +366,14 @@ export function TasksTab() {
             {!isExpanded && task.description && (
               <p className="mt-0.5 text-xs text-th-text-muted truncate">{task.description}</p>
             )}
-            <div className="mt-1 flex items-center gap-3 text-xs text-th-text-muted">
-              {task.priority && <span className="capitalize" style={{ color: PRIORITY_HEX[task.priority] }}>{task.priority}</span>}
+            <div className="mt-1.5 flex items-center gap-3 text-xs text-th-text-secondary">
               {task.dueDate && (
-                <span style={{ color: getDueDateColor(task.dueDate) }}>{formatDueDate(task.dueDate)}</span>
+                <span className="flex items-center gap-1" style={{ color: getDueDateColor(task.dueDate) }}>
+                  <Clock className="h-3 w-3" />
+                  {formatDueDate(task.dueDate)}
+                </span>
               )}
-              {task.listName && <span>{task.listName}</span>}
+              {task.listName && <span className="text-th-text-muted">{task.listName}</span>}
             </div>
           </div>
         </div>
@@ -535,7 +539,7 @@ export function TasksTab() {
               <button
                 key={s}
                 onClick={() => setFilterStatus(s)}
-                className={`rounded px-2.5 py-1 text-xs capitalize ${filterStatus === s ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+                className={`rounded-full px-2.5 py-1 text-xs capitalize ${filterStatus === s ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
               >
                 {s === 'all' ? 'All' : s === 'open' ? `Open (${counts.open})` : `Done (${counts.completed})`}
               </button>
@@ -546,7 +550,7 @@ export function TasksTab() {
               <button
                 key={p}
                 onClick={() => setFilterPriority(p)}
-                className={`rounded px-2.5 py-1 text-xs capitalize ${filterPriority === p ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+                className={`rounded-full px-2.5 py-1 text-xs capitalize ${filterPriority === p ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
               >
                 {p === 'all' ? 'Any Priority' : `${p} (${counts[p as keyof typeof counts] || 0})`}
               </button>
@@ -577,7 +581,7 @@ export function TasksTab() {
               <button
                 key={s}
                 onClick={() => setSortBy(s)}
-                className={`rounded px-2.5 py-1 text-xs ${sortBy === s ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+                className={`rounded-full px-2.5 py-1 text-xs ${sortBy === s ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
               >{s === 'dueDate' ? 'Due Date' : s === 'priority' ? 'Priority' : 'Recent'}</button>
             ))}
             {availableLists.length > 0 && (
@@ -585,7 +589,7 @@ export function TasksTab() {
                 <span className="text-th-border">|</span>
                 <button
                   onClick={() => setGroupByList(!groupByList)}
-                  className={`rounded px-2.5 py-1 text-xs ${groupByList ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+                  className={`rounded-full px-2.5 py-1 text-xs ${groupByList ? 'bg-cyan-600/20 text-cyan-400' : 'text-th-text-muted hover:text-th-text-secondary'}`}
                 >Group by list</button>
               </>
             )}
@@ -690,7 +694,7 @@ export function TasksTab() {
         )}
 
         {!groupByList ? (
-          <div className="flex flex-col">
+          <div className="flex flex-col gap-2 p-3 content-column">
             {filteredTasks.map(renderTask)}
           </div>
         ) : (

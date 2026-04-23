@@ -612,7 +612,7 @@ export function NotesTab() {
                   value={activeNote.content}
                   onChange={(e) => updateField('content', e.target.value)}
                   placeholder="Start writing... (supports Markdown)"
-                  className="h-full w-full resize-none bg-transparent px-6 py-4 text-base md:text-sm leading-relaxed text-th-text-secondary outline-none placeholder-th-text-muted font-mono"
+                  className="h-full w-full resize-none bg-transparent px-6 py-4 text-base md:text-sm leading-relaxed text-th-text-secondary outline-none placeholder-th-text-muted"
                 />
               )}
             </div>

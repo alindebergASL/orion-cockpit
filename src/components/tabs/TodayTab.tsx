@@ -330,7 +330,7 @@ export function TodayTab() {
 
   return (
     <div className="flex h-full flex-col overflow-x-hidden overflow-y-auto">
-      <div className="mx-auto w-full max-w-2xl px-4 py-6 md:px-6 md:py-8">
+      <div className="mx-auto w-full max-w-3xl px-4 py-6 md:px-6 md:py-8">
 
         {/* Date header + navigation */}
         <div className="mb-6 flex items-center justify-between">
@@ -376,9 +376,9 @@ export function TodayTab() {
 
         {/* Briefing (today only) */}
         {briefing && (
-          <div className="mb-5 rounded-lg border border-th-border bg-th-surface px-4 py-3">
+          <div className="mb-5 rounded-xl border border-cyan-600/20 bg-gradient-to-br from-cyan-600/5 to-transparent px-4 py-3.5">
             <div className="flex items-start justify-between gap-2">
-              <p className="text-sm text-th-text-secondary leading-relaxed flex-1">
+              <p className="text-sm text-th-text leading-relaxed flex-1">
                 {aiBriefing || briefing}
               </p>
               <button
@@ -427,7 +427,7 @@ export function TodayTab() {
                   }
                   api.markInsightRead(insight.id).catch(() => {});
                 }}
-                className="flex w-full items-start gap-2.5 rounded-lg border border-th-border bg-th-surface px-4 py-2.5 text-left hover:bg-th-elevated/50 transition-colors"
+                className="flex w-full items-start gap-2.5 rounded-xl border border-th-border bg-th-surface px-4 py-3 text-left hover:bg-th-elevated/50 transition-colors animate-slide-up border-l-2 border-l-cyan-500"
               >
                 <Lightbulb className="h-4 w-4 mt-0.5 shrink-0 text-cyan-400" />
                 <div className="flex-1 min-w-0">

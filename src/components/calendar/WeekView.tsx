@@ -26,10 +26,10 @@ export function WeekView({ events, weekStart, onEventClick }: Props) {
         const today = isToday(date);
 
         return (
-          <div key={i} className="flex flex-col overflow-hidden rounded-lg border border-th-border md:border-0 md:rounded-none">
+          <div key={i} className={`flex flex-col overflow-hidden rounded-lg border border-th-border md:border-0 md:rounded-none ${today ? 'md:bg-cyan-600/5' : ''}`}>
             {/* Day header */}
             <div
-              className={`flex flex-col items-center border-b px-2 py-2 ${
+              className={`flex flex-col items-center border-b px-2 py-2.5 ${
                 today ? 'border-cyan-600 bg-cyan-600/10' : 'border-th-border'
               }`}
             >
@@ -84,7 +84,7 @@ function EventBlock({
   return (
     <button
       onClick={() => onClick?.(event)}
-      className={`w-full rounded-md border-l-2 px-2 py-1.5 text-left transition-colors hover:brightness-125 ${color.bg} ${color.border}`}
+      className={`w-full rounded-lg border-l-2 px-2.5 py-2 text-left transition-colors hover:brightness-125 ${color.bg} ${color.border}`}
     >
       {!event.allDay && (
         <div className={`text-[10px] font-medium ${color.text}`}>

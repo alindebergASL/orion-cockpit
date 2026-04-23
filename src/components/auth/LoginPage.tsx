@@ -28,11 +28,11 @@ export function LoginPage() {
       <div className="w-11/12 max-w-sm">
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-600 text-lg font-bold tracking-tight">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 text-lg font-bold tracking-tight text-white shadow-lg shadow-cyan-600/20">
             OC
           </div>
           <h1 className="text-xl font-semibold text-th-text">Orion Cockpit</h1>
-          <p className="text-sm text-th-text-muted">Sign in to your dashboard</p>
+          <p className="text-sm text-th-text-muted">Your personal cockpit, powered by OpenClaw</p>
         </div>
 
         {/* Form */}

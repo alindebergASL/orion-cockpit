@@ -16,29 +16,38 @@
     --color-bg-input: #1e293b;
     --color-text-primary: #f1f5f9;
     --color-text-secondary: #94a3b8;
-    --color-text-muted: #475569;
+    --color-text-muted: #64748b;
     --color-border: #1e293b;
     --color-border-strong: #334155;
   }
 
-  /* Theme: light */
+  /* Theme: light — warm stone palette */
   .light {
-    --color-bg-base: #ffffff;
-    --color-bg-surface: #f8fafc;
-    --color-bg-elevated: #f1f5f9;
+    --color-bg-base: #faf9f7;
+    --color-bg-surface: #f5f3f0;
+    --color-bg-elevated: #ece9e4;
     --color-bg-input: #ffffff;
-    --color-text-primary: #0f172a;
-    --color-text-secondary: #475569;
-    --color-text-muted: #94a3b8;
-    --color-border: #e2e8f0;
-    --color-border-strong: #cbd5e1;
-    scrollbar-color: #cbd5e1 transparent;
+    --color-text-primary: #1a1a1a;
+    --color-text-secondary: #52525b;
+    --color-text-muted: #78716c;
+    --color-border: #e7e5e4;
+    --color-border-strong: #d6d3d1;
+    scrollbar-color: #d6d3d1 transparent;
   }
 
-  /* Apply theme variables to body */
   body {
     background-color: var(--color-bg-base);
     color: var(--color-text-primary);
     transition: background-color 0.2s, color 0.2s;
+  }
+}
+
+@layer utilities {
+  .content-column {
+    max-width: 56rem;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
   }
 }

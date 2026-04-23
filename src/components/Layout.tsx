@@ -77,7 +77,7 @@ export function Layout({ activeTab, onTabChange, children }: LayoutProps) {
         <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="rounded-lg p-2 text-th-text-secondary">
           {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-cyan-600 text-xs font-bold">OC</div>
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-cyan-500 to-violet-600 text-xs font-bold text-white">OC</div>
         <div className="w-9" />
       </div>
 
@@ -88,7 +88,7 @@ export function Layout({ activeTab, onTabChange, children }: LayoutProps) {
       <aside className={`${mobileMenuOpen ? 'fixed left-0 top-0 bottom-0 z-20 pt-14 w-20 overflow-y-auto' : 'hidden'} md:relative md:flex md:pt-0 w-20 flex-col items-center justify-between border-r border-th-border bg-th-surface py-4`}>
         <div className="flex flex-col items-center gap-1">
           {/* Logo (desktop only) */}
-          <div className="mb-6 hidden md:flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-600 text-sm font-bold tracking-tight text-white">
+          <div className="mb-6 hidden md:flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-violet-600 text-sm font-bold tracking-tight text-white shadow-md shadow-cyan-600/20">
             OC
           </div>
 
