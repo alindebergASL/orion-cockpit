@@ -71,7 +71,7 @@ function loadConfig(): AppConfig {
     jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me',
     chatMode: (process.env.CHAT_MODE as ChatMode) || 'openclaw',
     openclaw: {
-      url: (process.env.OPENCLAW_URL || 'http://localhost:18789').replace(/\/+$/, ''),
+      url: (process.env.OPENCLAW_URL || 'http://localhost:8891').replace(/\/+$/, ''),
       token: process.env.OPENCLAW_TOKEN || '',
     },
     llm: {
