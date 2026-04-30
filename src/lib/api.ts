@@ -542,6 +542,10 @@ class ApiClient {
     });
   }
 
+  async getActivitySummary(): Promise<{ summary: string | null; total: number }> {
+    return this.request('/api/activity/summary');
+  }
+
   // ── Weather ───────────────────────────────────────────────
 
   async aiGenerateBriefing(

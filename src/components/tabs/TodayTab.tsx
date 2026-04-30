@@ -48,6 +48,15 @@ function formatDay(d: Date): string {
   return d.toLocaleDateString([], { weekday: 'short' });
 }
 
+function timeAgo(d: Date): string {
+  const s = Math.round((Date.now() - d.getTime()) / 1000);
+  if (s < 60) return 'just now';
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  return `${h}h ago`;
+}
+
 function daysBetween(a: Date, b: Date): number {
   return Math.round((b.getTime() - a.getTime()) / 86400000);
 }
@@ -130,10 +139,11 @@ function WeatherChip({ weather }: { weather: WeatherData }) {
 function FamilyChip() {
   return (
     <div className="inline-flex items-center gap-2 rounded-xl border border-th-border bg-th-surface px-3 py-2">
-      <span className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-th-elevated">
-        <Users className="h-4 w-4 text-th-text-secondary" />
+      <div className="relative flex shrink-0">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-th-elevated text-[10px] font-medium text-th-text">A</span>
+        <span className="flex h-7 w-7 -ml-2 items-center justify-center rounded-full bg-th-elevated text-[10px] font-medium text-th-text ring-2 ring-th-surface">L</span>
         <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-th-surface bg-emerald-400" />
-      </span>
+      </div>
       <div className="leading-tight">
         <p className="text-sm font-semibold text-th-text">Family</p>
         <p className="text-[11px] text-th-text-muted">Everyone&apos;s good</p>
@@ -154,27 +164,28 @@ function isActionableInsight(i: Insight): boolean {
 }
 
 function RecapPill({
+  actionSummary,
   insights,
   open,
   onToggle,
 }: {
+  actionSummary: string | null;
   insights: Insight[];
   open: boolean;
   onToggle: () => void;
 }) {
   const actionable = insights.filter(isActionableInsight);
-  const count = actionable.length;
-  if (count === 0) return null;
+  if (!actionSummary && actionable.length === 0) return null;
   return (
     <div className="mt-1">
       <button
         onClick={onToggle}
         className="inline-flex items-center gap-1 text-xs font-medium text-th-ai-text hover:underline"
       >
-        OpenClaw did {count} thing{count === 1 ? '' : 's'} today
+        {actionSummary || `OpenClaw handled ${actionable.length} item${actionable.length === 1 ? '' : 's'} today`}
         <ArrowRight className={`h-3 w-3 transition-transform ${open ? 'rotate-90' : ''}`} />
       </button>
-      {open && (
+      {open && actionable.length > 0 && (
         <div className="mt-2 rounded-xl border border-th-ai/20 bg-th-ai-soft/40 p-4 animate-slide-up">
           <ul className="space-y-2">
             {actionable.slice(0, 5).map((i) => (
@@ -485,6 +496,17 @@ function SummaryPills({
       : `Today ${todayCount} event${todayCount === 1 ? '' : 's'}`;
   const busyText = busyDay.count >= 3 ? `${busyDay.day} busy` : 'rest of week light';
 
+  const sat = new Date(now);
+  sat.setDate(now.getDate() + (6 - now.getDay()));
+  const sun = new Date(sat);
+  sun.setDate(sat.getDate() + 1);
+  const weekendEvts = events.filter((e) => isSameDay(e.start, sat) || isSameDay(e.start, sun));
+  const weekendText = weekendEvts.length > 0 && weekendEvts[0]
+    ? `Weekend: ${weekendEvts[0].title}`
+    : now.getDay() < 5 ? 'weekend clear' : null;
+
+  const calParts = [summaryText, busyText, weekendText].filter(Boolean).join(' · ');
+
   const decisions = insights.length;
 
   return (
@@ -498,7 +520,7 @@ function SummaryPills({
             <CalendarDays className="h-4 w-4" />
           </span>
           <span className="flex-1 truncate text-sm text-th-text-secondary">
-            {summaryText} · {busyText} · Weekend with family
+            {calParts}
           </span>
           <ChevronDown
             className={`h-4 w-4 shrink-0 text-th-text-muted transition-transform ${open === 'week' ? 'rotate-180' : ''}`}
@@ -631,8 +653,8 @@ function InsightsCollapsible({
   const [showAll, setShowAll] = useState(false);
   const filtered = insights.filter((i) => !isMetaInsight(i));
   if (filtered.length === 0) return null;
-  const visible = showAll ? filtered : filtered.slice(0, 5);
-  const hasMore = filtered.length > 5 && !showAll;
+  const visible = showAll ? filtered : filtered.slice(0, 3);
+  const hasMore = filtered.length > 3 && !showAll;
   return (
     <div className="rounded-2xl border border-th-border bg-th-surface">
       <button
@@ -705,6 +727,8 @@ export function TodayTab() {
   const [digest, setDigest] = useState<ProjectDigest | null>(null);
   const [journalOpen, setJournalOpen] = useState(false);
   const [journal, setJournal] = useState('');
+  const [actionSummary, setActionSummary] = useState<string | null>(null);
+  const [syncedAt, setSyncedAt] = useState<Date | null>(null);
   const journalSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const briefingTriggered = useRef(false);
 
@@ -716,13 +740,16 @@ export function TodayTab() {
       api.getWeather().catch(() => null),
       api.getInsights().catch(() => ({ insights: [], unreadCount: 0 })),
       api.getProjects().catch(() => []),
+      api.getActivitySummary().catch(() => ({ summary: null, total: 0 })),
     ])
-      .then(([calData, taskData, weatherData, insightData, projectData]) => {
+      .then(([calData, taskData, weatherData, insightData, projectData, activityData]) => {
         setEvents(calData.events);
         setTasks(taskData.tasks);
         setWeather(weatherData);
         setInsights(insightData.insights.filter((i: Insight) => !i.read));
         setProjects(projectData);
+        setActionSummary(activityData.summary);
+        setSyncedAt(new Date());
       })
       .finally(() => setLoading(false));
   }, []);
@@ -886,7 +913,14 @@ export function TodayTab() {
                 <GreetingIcon className="h-6 w-6 text-amber-400" />
                 {greeting.text}, {firstName}
               </h1>
-              <p className="mt-0.5 text-xs text-th-text-muted">{dateLine}</p>
+              <p className="mt-0.5 text-xs text-th-text-muted">
+                {dateLine}
+                {syncedAt && (
+                  <span className="ml-2 text-th-text-muted" title={syncedAt.toLocaleTimeString()}>
+                    · Synced {timeAgo(syncedAt)}
+                  </span>
+                )}
+              </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {weather && <WeatherChip weather={weather} />}
@@ -912,7 +946,7 @@ export function TodayTab() {
             </button>
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <RecapPill insights={insights} open={recapOpen} onToggle={() => setRecapOpen((v) => !v)} />
+            <RecapPill actionSummary={actionSummary} insights={insights} open={recapOpen} onToggle={() => setRecapOpen((v) => !v)} />
             <button
               type="button"
               onClick={() => setJournalOpen((v) => !v)}

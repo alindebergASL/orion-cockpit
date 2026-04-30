@@ -89,16 +89,27 @@ ${recentActivity.map((a) => `${a.action}: ${a.details || ''} (${a.created_at})`)
 Already generated insights (don't duplicate):
 ${existingTitles.join(', ') || 'None'}
 
-Generate 0-3 NEW insights. Only generate if genuinely useful. Look for:
-- **Cross-entity connections**: task related to an upcoming meeting, project deadline approaching with incomplete tasks, note topics that match calendar events
-- **Calendar conflicts**: overlapping events, overscheduled days
-- **Deadline risks**: overdue tasks, projects with approaching target dates but low completion
-- **Momentum observations**: stalled projects (no activity in days), unbalanced workload
-- **Proactive prep**: meetings in next 2h that need preparation, tasks due today
-- **Journal alignment**: if the journal mentions a priority, check if it's reflected in tasks/calendar
+Generate 0-3 NEW insights. Only generate if genuinely useful — something the user should act on today.
+
+Insights should sound like notes a person makes to themselves, not like a system status report. Short. Active. Sentence case. No marketing copy.
+
+Voice rules:
+- Titles: sentence case, imperative or active voice, under 8 words. "Add return flight details" not "Return Flight Details Are Weaker Than Outbound."
+- Body: 1 sentence, max 2. Use contractions. Second person ("you") or no subject. No referring to the user by name in third person.
+- Examples: "Add the return flight info — only the outbound is tracked." / "Drop a follow-up note after UCR — it's the main work item today."
+
+Do NOT generate insights about the user's dashboard usage patterns, browsing behavior, or session activity. Only surface insights about their actual work, calendar, tasks, and projects.
+
+Look for:
+- Cross-entity connections: a task that relates to an upcoming meeting, a project deadline with incomplete tasks
+- Calendar conflicts or overscheduled days
+- Deadline risks: overdue tasks, approaching target dates
+- Stalled projects with no recent activity
+- Meetings in the next 2h that need preparation
+- Journal priorities not reflected in tasks/calendar
 
 Return a JSON array (or empty array if nothing noteworthy):
-[{ "type": "cross_tab|calendar_conflict|deadline_risk|momentum|preparation|suggestion", "title": "short title", "body": "2-3 sentence explanation connecting the dots", "priority": "high|normal|low", "action_type": "navigate|null", "action_data": "{\\"tab\\": \\"tasks\\"}" }]
+[{ "type": "cross_tab|calendar_conflict|deadline_risk|momentum|preparation|suggestion", "title": "short imperative title in sentence case", "body": "1-2 conversational sentences, use contractions", "priority": "high|normal|low", "action_type": "navigate|null", "action_data": "{\\"tab\\": \\"tasks\\"}" }]
 
 Return ONLY the JSON array, no other text.`;
 
