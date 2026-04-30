@@ -11,6 +11,69 @@ export const chatRouter = Router();
 
 chatRouter.use(authenticate);
 
+function buildDashboardContext(userId: number): string {
+  const db = getDb();
+  const today = new Date().toISOString().split('T')[0];
+  const sections: string[] = [];
+
+  const projects = db.prepare(`
+    SELECT p.id, p.title, p.description, p.status, p.target_date, p.tags,
+      (SELECT COUNT(*) FROM project_tasks WHERE project_id = p.id) as task_count,
+      (SELECT COUNT(*) FROM project_tasks WHERE project_id = p.id AND status = 'completed') as completed_count
+    FROM projects p WHERE p.user_id = ? ORDER BY p.updated_at DESC LIMIT 10
+  `).all(userId) as { id: number; title: string; description: string; status: string; target_date: string | null; tags: string; task_count: number; completed_count: number }[];
+
+  if (projects.length > 0) {
+    const lines = projects.map((p) => {
+      const tags = p.tags ? JSON.parse(p.tags).join(', ') : '';
+      const target = p.target_date ? `, target: ${p.target_date}` : '';
+      let line = `- "${p.title}" [${p.status}] (${p.completed_count}/${p.task_count} tasks done${target})`;
+      if (tags) line += ` — tags: ${tags}`;
+
+      if (p.status === 'active') {
+        const openTasks = db.prepare(
+          `SELECT title FROM project_tasks WHERE project_id = ? AND status = 'open' ORDER BY sort_order ASC LIMIT 5`
+        ).all(p.id) as { title: string }[];
+        if (openTasks.length > 0) {
+          line += `\n  Open tasks: ${openTasks.map((t) => t.title).join(', ')}`;
+        }
+      }
+      return line;
+    });
+    sections.push(`Projects:\n${lines.join('\n')}`);
+  }
+
+  const notes = db.prepare(`
+    SELECT title, substr(content, 1, 200) as excerpt, tags, folder, updated_at
+    FROM notes WHERE user_id = ? ORDER BY updated_at DESC LIMIT 10
+  `).all(userId) as { title: string; excerpt: string; tags: string | null; folder: string | null; updated_at: string }[];
+
+  if (notes.length > 0) {
+    const lines = notes.map((n) => {
+      const meta: string[] = [];
+      if (n.folder) meta.push(`folder: ${n.folder}`);
+      if (n.tags) {
+        try { meta.push(`tags: ${JSON.parse(n.tags).join(', ')}`); } catch { /* ignore */ }
+      }
+      const metaStr = meta.length ? ` (${meta.join(', ')})` : '';
+      return `- "${n.title}"${metaStr} — "${n.excerpt}${n.excerpt.length >= 200 ? '…' : ''}"`;
+    });
+    sections.push(`Recent notes:\n${lines.join('\n')}`);
+  }
+
+  const journal = db.prepare(
+    `SELECT content FROM daily_notes WHERE user_id = ? AND date = ? LIMIT 1`
+  ).get(userId, today) as { content: string } | undefined;
+
+  if (journal?.content?.trim()) {
+    sections.push(`Today's journal:\n"${journal.content.trim().slice(0, 500)}"`);
+  }
+
+  if (sections.length === 0) return '';
+
+  return `\n--- Dashboard data (projects, notes, journal) ---\n\n${sections.join('\n\n')}\n\nWhen the user asks about projects, notes, or their journal, use this data to answer directly.\nDo not say you don't have access to this information — you do.\nFor full note content, use the search_dashboard tool.`;
+}
+
 function buildSystemPrompt(user: { id: number; displayName: string; username: string }): string {
   const db = getDb();
 
@@ -55,13 +118,15 @@ ${calendarJson}
 Here is ${user.username}'s task data (synced at ${taskSyncRow?.last_synced_at ?? 'never'}):
 ${taskJson}
 
-When the user asks about their schedule or tasks, use the data above to answer immediately.
+When the user asks about their schedule, tasks, projects, notes, or journal, use the data above to answer immediately.
 Call tools only when:
 - Data needs to be refreshed (user asks to refresh, or data was never synced)
 - An action is needed (create/update/delete an event or task)
-- The question is outside calendar/tasks scope (use ask_openclaw)
+- You need full note content (use search_dashboard)
+- The question is outside dashboard scope (use ask_openclaw)
 
-Keep responses conversational and helpful. You know the user personally.`;
+Keep responses conversational and helpful. You know the user personally.`
+  + buildDashboardContext(user.id);
 }
 
 function loadConversationHistory(conversationId: number, limit = 50): LLMMessage[] {
