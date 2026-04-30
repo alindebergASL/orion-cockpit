@@ -142,6 +142,17 @@ function FamilyChip() {
   );
 }
 
+const META_KEYWORDS = ['dashboard', 'usage pattern', 'activity is all', 'your browsing', 'session'];
+
+function isMetaInsight(i: Insight): boolean {
+  const text = `${i.title} ${i.body}`.toLowerCase();
+  return META_KEYWORDS.some((kw) => text.includes(kw));
+}
+
+function isActionableInsight(i: Insight): boolean {
+  return !!i.actionType && !isMetaInsight(i);
+}
+
 function RecapPill({
   insights,
   open,
@@ -151,7 +162,8 @@ function RecapPill({
   open: boolean;
   onToggle: () => void;
 }) {
-  const count = insights.length;
+  const actionable = insights.filter(isActionableInsight);
+  const count = actionable.length;
   if (count === 0) return null;
   return (
     <div className="mt-1">
@@ -165,13 +177,18 @@ function RecapPill({
       {open && (
         <div className="mt-2 rounded-xl border border-th-ai/20 bg-th-ai-soft/40 p-4 animate-slide-up">
           <ul className="space-y-2">
-            {insights.slice(0, 6).map((i) => (
+            {actionable.slice(0, 5).map((i) => (
               <li key={i.id} className="text-sm text-th-text-secondary">
                 <span className="font-medium text-th-text">{i.title}</span>
                 {i.body && <span className="text-th-text-muted"> — {i.body}</span>}
               </li>
             ))}
           </ul>
+          {actionable.length > 5 && (
+            <p className="mt-2 text-xs text-th-text-muted">
+              + {actionable.length - 5} more
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -489,16 +506,25 @@ function SummaryPills({
         </button>
         {open === 'week' && (
           <div className="border-t border-th-border px-4 py-3 animate-slide-up">
-            <ul className="space-y-1.5 text-xs">
-              {week.map((d) => (
-                <li key={d.day + d.date.toDateString()} className="flex justify-between text-th-text-secondary">
-                  <span>{d.day} {d.date.getMonth() + 1}/{d.date.getDate()}</span>
-                  <span className="text-th-text-muted">
-                    {d.count === 0 ? 'no events' : `${d.count} event${d.count === 1 ? '' : 's'}`}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            {(() => {
+              const busy = week.filter((d) => d.count > 0);
+              if (busy.length === 0) return <p className="text-xs text-th-text-muted">No events this week.</p>;
+              return (
+                <p className="text-sm text-th-text-secondary leading-relaxed">
+                  {busy.map((d, i) => (
+                    <span key={d.day + d.date.toDateString()}>
+                      {i > 0 && ', '}
+                      <span className="font-medium text-th-text">{d.count}</span> on {d.day}
+                    </span>
+                  ))}
+                  {busy.length < 7 && <span className="text-th-text-muted">, otherwise clear</span>}
+                  .
+                </p>
+              );
+            })()}
+            <button onClick={() => navigateTab('calendar')} className="mt-2 text-xs text-th-accent-text hover:underline">
+              Open calendar →
+            </button>
           </div>
         )}
       </div>
@@ -523,13 +549,28 @@ function SummaryPills({
             {decisions === 0 ? (
               <p className="text-xs text-th-text-muted">Nothing waiting on you.</p>
             ) : (
-              <ul className="space-y-1.5 text-xs">
+              <div className="space-y-1.5">
                 {insights.slice(0, 5).map((i) => (
-                  <li key={i.id} className="text-th-text-secondary">
-                    <span className="font-medium text-th-text">{i.title}</span>
-                  </li>
+                  <button
+                    key={i.id}
+                    onClick={() => {
+                      if (i.actionType === 'navigate' && i.actionData) {
+                        try {
+                          const data = typeof i.actionData === 'string' ? JSON.parse(i.actionData) : i.actionData;
+                          if (data.tab) navigateTab(data.tab as string);
+                        } catch { /* ignore */ }
+                      } else {
+                        sendToChat(i.title);
+                      }
+                      api.markInsightRead(i.id).catch(() => {});
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs hover:bg-th-elevated/50"
+                  >
+                    <span className="flex-1 font-medium text-th-text">{i.title}</span>
+                    <ChevronRight className="h-3 w-3 shrink-0 text-th-text-muted" />
+                  </button>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
         )}
@@ -587,7 +628,11 @@ function InsightsCollapsible({
   open: boolean;
   onToggle: () => void;
 }) {
-  if (insights.length === 0) return null;
+  const [showAll, setShowAll] = useState(false);
+  const filtered = insights.filter((i) => !isMetaInsight(i));
+  if (filtered.length === 0) return null;
+  const visible = showAll ? filtered : filtered.slice(0, 5);
+  const hasMore = filtered.length > 5 && !showAll;
   return (
     <div className="rounded-2xl border border-th-border bg-th-surface">
       <button
@@ -598,19 +643,44 @@ function InsightsCollapsible({
         <span className="flex-1 truncate text-sm text-th-text-secondary">
           OpenClaw insights
         </span>
-        <span className="text-xs text-th-text-muted">{insights.length}</span>
+        <span className="text-xs text-th-text-muted">{filtered.length}</span>
         <ChevronDown
           className={`h-4 w-4 shrink-0 text-th-text-muted transition-transform ${open ? 'rotate-180' : ''}`}
         />
       </button>
       {open && (
         <div className="border-t border-th-border p-4 animate-slide-up space-y-2">
-          {insights.map((i) => (
-            <div key={i.id} className="rounded-xl border border-th-border bg-th-elevated/40 p-3">
-              <p className="text-sm font-medium text-th-text">{i.title}</p>
-              {i.body && <p className="mt-0.5 text-xs text-th-text-muted">{i.body}</p>}
-            </div>
+          {visible.map((i) => (
+            <button
+              key={i.id}
+              onClick={() => {
+                if (i.actionType === 'navigate' && i.actionData) {
+                  try {
+                    const data = typeof i.actionData === 'string' ? JSON.parse(i.actionData) : i.actionData;
+                    if (data.tab) navigateTab(data.tab as string);
+                  } catch { /* ignore */ }
+                } else {
+                  sendToChat(i.title);
+                }
+                api.markInsightRead(i.id).catch(() => {});
+              }}
+              className="flex w-full items-start gap-3 rounded-xl border border-th-border bg-th-elevated/40 p-3 text-left hover:bg-th-elevated/70 transition-colors"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-th-text">{i.title}</p>
+                {i.body && <p className="mt-0.5 text-xs text-th-text-muted">{i.body}</p>}
+              </div>
+              <ChevronRight className="h-4 w-4 mt-0.5 shrink-0 text-th-text-muted" />
+            </button>
           ))}
+          {hasMore && (
+            <button
+              onClick={() => setShowAll(true)}
+              className="w-full text-center text-xs text-th-ai-text hover:underline py-1"
+            >
+              Show all {filtered.length} insights
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -762,8 +832,9 @@ export function TodayTab() {
     [tasks],
   );
 
-  const topInsight = insights[0] ?? null;
-  const restInsights = insights.slice(1);
+  const surfaceInsights = insights.filter((i) => !isMetaInsight(i));
+  const topInsight = surfaceInsights[0] ?? null;
+  const restInsights = surfaceInsights.slice(1);
 
   const recommendation = useMemo<string | null>(() => {
     if (digest?.nextAction) return digest.nextAction;
@@ -806,21 +877,26 @@ export function TodayTab() {
 
   return (
     <div className="flex h-full flex-col overflow-x-hidden overflow-y-auto">
-      <div className="mx-auto w-full max-w-3xl px-4 py-6 md:px-6 md:py-10 space-y-5">
-        {/* 1. Greeting row */}
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="flex items-center gap-2 text-2xl font-semibold text-th-text">
-              <GreetingIcon className="h-6 w-6 text-amber-400" />
-              {greeting.text}, {firstName}
-            </h1>
-            <p className="mt-0.5 text-xs text-th-text-muted">{dateLine}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {weather && <WeatherChip weather={weather} />}
-            <FamilyChip />
+      {/* Sticky greeting bar — anchors the page on scroll */}
+      <div className="sticky top-0 z-10 border-b border-transparent bg-th-base/95 backdrop-blur-sm transition-colors">
+        <div className="mx-auto w-full max-w-3xl px-4 py-4 md:px-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="flex items-center gap-2 text-2xl font-semibold text-th-text">
+                <GreetingIcon className="h-6 w-6 text-amber-400" />
+                {greeting.text}, {firstName}
+              </h1>
+              <p className="mt-0.5 text-xs text-th-text-muted">{dateLine}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {weather && <WeatherChip weather={weather} />}
+              <FamilyChip />
+            </div>
           </div>
         </div>
+      </div>
+
+      <div className="mx-auto w-full max-w-3xl px-4 pb-6 pt-2 md:px-6 space-y-5">
 
         {/* 2. Status sentence + recap pill */}
         <div>
