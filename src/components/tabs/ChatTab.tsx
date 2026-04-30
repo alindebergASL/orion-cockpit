@@ -64,6 +64,16 @@ export function ChatTab() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
+  // Receive prefilled prompts from the Today hero input
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const text = (e as CustomEvent).detail?.text as string | undefined;
+      if (text && text.trim()) send(text);
+    };
+    window.addEventListener('orion-chat-send', handler);
+    return () => window.removeEventListener('orion-chat-send', handler);
+  }, [send]);
+
   const displayConversations = searchResults ?? conversations;
 
   return (
