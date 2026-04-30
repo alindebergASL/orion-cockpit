@@ -5,12 +5,18 @@ import {
   Scale,
   ChevronRight,
   ChevronDown,
-  PlayCircle,
+  PenLine,
   MessageSquare,
-  AlertCircle,
+  Users,
   ArrowRight,
   Lightbulb,
+  Sun,
+  Sunrise,
+  Moon,
+  Info,
+  Circle,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../lib/api';
 import { trackActivity } from '../../lib/activity';
@@ -18,11 +24,11 @@ import type { CalendarEvent, Task, Insight, Project } from '../../types';
 
 // ── Helpers ──────────────────────────────────────────────
 
-function getGreetingText(): string {
+function getGreeting(): { text: string; Icon: LucideIcon } {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (hour < 12) return { text: 'Good morning', Icon: Sunrise };
+  if (hour < 17) return { text: 'Good afternoon', Icon: Sun };
+  return { text: 'Good evening', Icon: Moon };
 }
 
 function isSameDay(dateStr: string, target: Date): boolean {
@@ -111,19 +117,28 @@ function buildStatusSentence(
 
 function WeatherChip({ weather }: { weather: WeatherData }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-th-border bg-th-surface px-2.5 py-1 text-xs text-th-text-secondary">
-      <span className="font-medium text-th-text">{weather.current.tempF}°</span>
-      <span className="text-th-text-muted">{weather.current.description}</span>
-    </span>
+    <div className="inline-flex items-center gap-2 rounded-xl border border-th-border bg-th-surface px-3 py-2">
+      <Sun className="h-5 w-5 shrink-0 text-amber-400" />
+      <div className="leading-tight">
+        <p className="text-sm font-semibold text-th-text">{weather.current.tempF}°F</p>
+        <p className="text-[11px] text-th-text-muted">{weather.current.description}</p>
+      </div>
+    </div>
   );
 }
 
 function FamilyChip() {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-th-border bg-th-surface px-2.5 py-1 text-xs text-th-text-secondary">
-      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-      Family · all good
-    </span>
+    <div className="inline-flex items-center gap-2 rounded-xl border border-th-border bg-th-surface px-3 py-2">
+      <span className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-th-elevated">
+        <Users className="h-4 w-4 text-th-text-secondary" />
+        <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-th-surface bg-emerald-400" />
+      </span>
+      <div className="leading-tight">
+        <p className="text-sm font-semibold text-th-text">Family</p>
+        <p className="text-[11px] text-th-text-muted">Everyone&apos;s good</p>
+      </div>
+    </div>
   );
 }
 
@@ -139,12 +154,11 @@ function RecapPill({
   const count = insights.length;
   if (count === 0) return null;
   return (
-    <div className="mt-2">
+    <div className="mt-1">
       <button
         onClick={onToggle}
-        className="inline-flex items-center gap-1.5 rounded-full border border-th-ai/30 bg-th-ai-soft px-3 py-1 text-xs font-medium text-th-ai-text hover:border-th-ai/50"
+        className="inline-flex items-center gap-1 text-xs font-medium text-th-ai-text hover:underline"
       >
-        <Sparkles className="h-3 w-3" />
         OpenClaw did {count} thing{count === 1 ? '' : 's'} today
         <ArrowRight className={`h-3 w-3 transition-transform ${open ? 'rotate-90' : ''}`} />
       </button>
@@ -209,9 +223,14 @@ function HeroChatInput() {
 
   return (
     <div className="rounded-2xl border border-th-border bg-th-surface p-6 shadow-sm">
-      <div className="mb-3 flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-th-ai-text" />
-        <h2 className="text-base font-semibold text-th-text">What can I help with?</h2>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-th-ai-text" />
+          <h2 className="text-base font-semibold text-th-text">What can I help with?</h2>
+        </div>
+        <kbd className="hidden rounded-md border border-th-border bg-th-elevated px-2 py-1 text-[10px] font-medium text-th-text-muted sm:inline-block">
+          ⌘K
+        </kbd>
       </div>
       <div className="flex items-center gap-2">
         <input
@@ -227,12 +246,9 @@ function HeroChatInput() {
           placeholder="Try: Plan my DC trip…"
           className="flex-1 rounded-xl border border-th-border bg-th-input px-4 py-3 text-sm text-th-text placeholder-th-text-muted outline-none focus:border-th-accent"
         />
-        <kbd className="hidden rounded-md border border-th-border bg-th-elevated px-2 py-1 text-[10px] font-medium text-th-text-muted sm:inline-block">
-          ⌘K
-        </kbd>
         <button
           onClick={handleSend}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-th-accent text-white hover:opacity-90 disabled:opacity-50"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-500/90 text-white hover:bg-blue-500 disabled:opacity-50"
           disabled={!value.trim()}
           aria-label="Send"
         >
@@ -244,18 +260,35 @@ function HeroChatInput() {
 }
 
 function ProjectIcon({ project }: { project: Project }) {
-  const ch = (project.icon || project.title.charAt(0) || '·').slice(0, 2);
+  const hasCustom = !!project.icon;
+  const ch = (project.icon || '').slice(0, 2);
   return (
     <div
-      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base font-semibold"
-      style={{
-        backgroundColor: project.color ? `${project.color}22` : 'var(--color-accent-soft)',
-        color: project.color || 'var(--color-accent-text)',
-      }}
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-500/15 text-base font-semibold text-purple-300"
+      style={
+        project.color
+          ? { backgroundColor: `${project.color}22`, color: project.color }
+          : undefined
+      }
     >
-      {ch}
+      {hasCustom ? ch : <CalendarDays className="h-5 w-5" />}
     </div>
   );
+}
+
+function formatDueChip(dueIso: string, now: Date): { text: string; urgent: boolean } {
+  const due = new Date(dueIso);
+  const days = daysBetween(
+    new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+    new Date(due.getFullYear(), due.getMonth(), due.getDate()),
+  );
+  if (days === 0) return { text: 'Due today', urgent: true };
+  if (days === 1) return { text: 'Due tomorrow', urgent: true };
+  if (days < 0) return { text: 'Overdue', urgent: true };
+  return {
+    text: due.toLocaleDateString([], { month: 'short', day: 'numeric' }),
+    urgent: false,
+  };
 }
 
 function FocusCard({
@@ -287,88 +320,114 @@ function FocusCard({
     );
   }
 
-  const start = new Date(project.createdAt);
+  const now = new Date();
   const target = project.targetDate ? new Date(project.targetDate) : null;
-  const daysToGo = target ? daysBetween(new Date(), target) : null;
-  const dateRange = target
-    ? `${start.toLocaleDateString([], { month: 'short', day: 'numeric' })} – ${target.toLocaleDateString([], { month: 'short', day: 'numeric' })}`
-    : start.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const daysToGo = target ? daysBetween(now, target) : null;
 
   const completed = project.completedTaskCount;
   const total = project.taskCount;
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-  const dueChip = focusTask?.dueDate
-    ? new Date(focusTask.dueDate).toLocaleDateString([], { month: 'short', day: 'numeric' })
-    : null;
+  const focusDue = focusTask?.dueDate ? formatDueChip(focusTask.dueDate, now) : null;
+  const metaText = project.tags && project.tags.length > 0 ? project.tags.join(' • ') : null;
 
   return (
     <div className="rounded-2xl border border-th-border bg-th-surface p-6">
-      <div className="flex items-start gap-3">
-        <ProjectIcon project={project} />
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate text-base font-semibold text-th-text">{project.title}</h3>
-          <p className="text-xs text-th-text-muted">
-            {dateRange}
-            {daysToGo !== null && daysToGo >= 0 && (
-              <> · <span className="text-th-text-secondary">{daysToGo} day{daysToGo === 1 ? '' : 's'} to go</span></>
-            )}
-          </p>
-        </div>
-      </div>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {/* Left column — project info */}
+        <div className="min-w-0">
+          <div className="flex items-start gap-3">
+            <ProjectIcon project={project} />
+            <h3 className="mt-1 min-w-0 flex-1 truncate text-base font-semibold text-th-text">
+              {project.title}
+            </h3>
+          </div>
 
-      {focusTask && (
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="text-sm text-th-text-muted">Right now:</span>
-          <span className="text-sm font-medium text-th-text">{focusTask.title}</span>
-          {dueChip && (
-            <span className="rounded-full border border-th-border bg-th-elevated px-2 py-0.5 text-[11px] text-th-text-secondary">
-              Due {dueChip}
-            </span>
+          {focusTask && (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="text-sm text-th-text">
+                <span className="text-th-text-muted">Right now:</span>{' '}
+                <span className="font-medium">{focusTask.title}</span>
+              </span>
+              {focusDue && (
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                    focusDue.urgent
+                      ? 'bg-rose-500/15 text-rose-400'
+                      : 'border border-th-border bg-th-elevated text-th-text-secondary'
+                  }`}
+                >
+                  {focusDue.text}
+                </span>
+              )}
+              <button
+                onClick={() => onOpenTask(focusTask)}
+                className="inline-flex items-center gap-1 rounded-lg bg-blue-500 px-3 py-1 text-xs font-medium text-white hover:bg-blue-500/90"
+              >
+                Open task
+              </button>
+            </div>
           )}
-          <button
-            onClick={() => onOpenTask(focusTask)}
-            className="ml-auto inline-flex items-center gap-1 rounded-lg border border-th-border bg-th-elevated px-3 py-1 text-xs text-th-text-secondary hover:bg-th-surface"
-          >
-            Open task
-            <ChevronRight className="h-3 w-3" />
-          </button>
-        </div>
-      )}
 
-      <div className="mt-4">
-        <div className="mb-1 flex items-center justify-between text-[11px] text-th-text-muted">
-          <span>{completed}/{total || 0} done</span>
-          <span>{pct}%</span>
+          {metaText && (
+            <p className="mt-3 text-xs text-th-text-muted">{metaText}</p>
+          )}
+
+          <div className="mt-4 flex items-center gap-3">
+            <span className="shrink-0 text-xs font-medium text-th-text-secondary">
+              {completed} / {total || 0} tasks
+            </span>
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-th-elevated">
+              <div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
+            </div>
+            {daysToGo !== null && daysToGo >= 0 && (
+              <span className="shrink-0 text-xs text-th-text-muted">
+                {daysToGo} day{daysToGo === 1 ? '' : 's'} to go
+              </span>
+            )}
+          </div>
         </div>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-th-elevated">
-          <div
-            className="h-full rounded-full bg-th-accent"
-            style={{ width: `${pct}%` }}
-          />
+
+        {/* Right column — task list */}
+        <div className="min-w-0">
+          {openItems.length > 0 ? (
+            <div className="space-y-2">
+              {openItems.slice(0, 3).map((t) => {
+                const due = t.dueDate ? formatDueChip(t.dueDate, now) : null;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => onOpenTask(t)}
+                    className="flex w-full items-center gap-3 rounded-xl border border-th-border bg-th-surface px-3 py-2.5 text-left hover:bg-th-elevated/50"
+                  >
+                    <Circle className="h-4 w-4 shrink-0 text-th-text-muted" />
+                    <span className="flex-1 truncate text-sm text-th-text">{t.title}</span>
+                    {due && (
+                      <span
+                        className={`shrink-0 text-[11px] font-medium ${
+                          due.urgent ? 'text-rose-400' : 'text-th-text-muted'
+                        }`}
+                      >
+                        {due.text}
+                      </span>
+                    )}
+                    <ChevronRight className="h-4 w-4 shrink-0 text-th-text-muted" />
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-th-border px-3 py-6 text-center text-xs text-th-text-muted">
+              No open tasks — you&apos;re caught up.
+            </div>
+          )}
         </div>
       </div>
-
-      {openItems.length > 0 && (
-        <div className="mt-4 divide-y divide-th-border rounded-xl border border-th-border">
-          {openItems.slice(0, 3).map((t) => (
-            <button
-              key={t.id}
-              onClick={() => onOpenTask(t)}
-              className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-th-elevated/50"
-            >
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-th-text-muted" />
-              <span className="flex-1 truncate text-sm text-th-text">{t.title}</span>
-              <ChevronRight className="h-4 w-4 shrink-0 text-th-text-muted" />
-            </button>
-          ))}
-        </div>
-      )}
 
       {recommendation && (
         <button
           onClick={() => sendToChat(recommendation)}
-          className="mt-4 flex w-full items-center gap-2 rounded-xl border border-th-ai/20 bg-th-ai-soft/50 px-3 py-2 text-left text-xs"
+          className="mt-5 flex w-full items-center gap-2 rounded-xl border border-th-ai/20 bg-th-ai-soft/50 px-3 py-2 text-left text-xs"
         >
           <Sparkles className="h-3 w-3 shrink-0 text-th-ai-text" />
           <span className="flex-1 truncate text-th-text-secondary">
@@ -418,7 +477,9 @@ function SummaryPills({
           onClick={() => onOpen(open === 'week' ? null : 'week')}
           className="flex w-full items-center gap-3 px-4 py-3 text-left"
         >
-          <CalendarDays className="h-4 w-4 shrink-0 text-th-accent-text" />
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400">
+            <CalendarDays className="h-4 w-4" />
+          </span>
           <span className="flex-1 truncate text-sm text-th-text-secondary">
             {summaryText} · {busyText} · Weekend with family
           </span>
@@ -447,7 +508,9 @@ function SummaryPills({
           onClick={() => onOpen(open === 'decisions' ? null : 'decisions')}
           className="flex w-full items-center gap-3 px-4 py-3 text-left"
         >
-          <Scale className="h-4 w-4 shrink-0 text-th-accent-text" />
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-500/15 text-purple-400">
+            <Scale className="h-4 w-4" />
+          </span>
           <span className="flex-1 truncate text-sm text-th-text-secondary">
             {decisions} decision{decisions === 1 ? '' : 's'} waiting
           </span>
@@ -482,7 +545,7 @@ function FooterPills({ resumeText }: { resumeText: string | null }) {
         onClick={() => navigateTab('chat')}
         className="flex items-center gap-2 rounded-2xl border border-th-border bg-th-surface px-4 py-3 text-left hover:bg-th-elevated/50"
       >
-        <PlayCircle className="h-4 w-4 shrink-0 text-emerald-400" />
+        <PenLine className="h-4 w-4 shrink-0 text-emerald-400" />
         <span className="flex-1 truncate text-sm text-th-text-secondary">
           {resumeText ?? 'Resume where you left off'}
         </span>
@@ -498,7 +561,7 @@ function FooterPills({ resumeText }: { resumeText: string | null }) {
         onClick={() => sendToChat('What family update do I need to know about?')}
         className="flex items-center gap-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-left hover:bg-rose-500/15"
       >
-        <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
+        <Users className="h-4 w-4 shrink-0 text-rose-400" />
         <span className="flex-1 truncate text-sm text-rose-100">Family update</span>
         <span className="shrink-0 rounded-full bg-rose-500 px-1.5 text-[10px] font-semibold text-white">
           1
@@ -627,9 +690,16 @@ export function TodayTab() {
     navigateTab('tasks');
   }, []);
 
-  const greeting = getGreetingText();
+  const greeting = getGreeting();
+  const GreetingIcon = greeting.Icon;
   const firstName = user?.displayName?.split(' ')[0] ?? '';
   const statusSentence = buildStatusSentence(events, now);
+  const dateLine = now.toLocaleDateString([], {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
 
   if (loading) {
     return (
@@ -643,10 +713,14 @@ export function TodayTab() {
     <div className="flex h-full flex-col overflow-x-hidden overflow-y-auto">
       <div className="mx-auto w-full max-w-3xl px-4 py-6 md:px-6 md:py-10 space-y-5">
         {/* 1. Greeting row */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold text-th-text">
-            {greeting}, {firstName}
-          </h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="flex items-center gap-2 text-2xl font-semibold text-th-text">
+              <GreetingIcon className="h-6 w-6 text-amber-400" />
+              {greeting.text}, {firstName}
+            </h1>
+            <p className="mt-0.5 text-xs text-th-text-muted">{dateLine}</p>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             {weather && <WeatherChip weather={weather} />}
             <FamilyChip />
@@ -655,7 +729,17 @@ export function TodayTab() {
 
         {/* 2. Status sentence + recap pill */}
         <div>
-          <p className="text-sm text-th-text-secondary">{statusSentence}</p>
+          <p className="flex items-center gap-1.5 text-sm text-th-text-secondary">
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-th-ai-text" />
+            <span className="flex-1">{statusSentence}</span>
+            <button
+              type="button"
+              className="text-th-text-muted hover:text-th-text-secondary"
+              aria-label="More info"
+            >
+              <Info className="h-3.5 w-3.5" />
+            </button>
+          </p>
           <RecapPill insights={insights} open={recapOpen} onToggle={() => setRecapOpen((v) => !v)} />
         </div>
 
