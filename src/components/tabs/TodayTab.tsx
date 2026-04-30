@@ -20,7 +20,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../lib/api';
 import { trackActivity } from '../../lib/activity';
-import type { CalendarEvent, Task, Insight, Project } from '../../types';
+import type { CalendarEvent, Task, Insight, Project, ProjectDigest } from '../../types';
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -538,7 +538,8 @@ function SummaryPills({
   );
 }
 
-function FooterPills({ resumeText }: { resumeText: string | null }) {
+function FooterPills({ resumeText, familyAlerts }: { resumeText: string | null; familyAlerts: number }) {
+  const hasAlert = familyAlerts > 0;
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       <button
@@ -559,13 +560,19 @@ function FooterPills({ resumeText }: { resumeText: string | null }) {
       </button>
       <button
         onClick={() => sendToChat('What family update do I need to know about?')}
-        className="flex items-center gap-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-left hover:bg-rose-500/15"
+        className={`flex items-center gap-2 rounded-2xl border px-4 py-3 text-left ${
+          hasAlert
+            ? 'border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/15'
+            : 'border-th-border bg-th-surface hover:bg-th-elevated/50'
+        }`}
       >
-        <Users className="h-4 w-4 shrink-0 text-rose-400" />
-        <span className="flex-1 truncate text-sm text-rose-100">Family update</span>
-        <span className="shrink-0 rounded-full bg-rose-500 px-1.5 text-[10px] font-semibold text-white">
-          1
-        </span>
+        <Users className={`h-4 w-4 shrink-0 ${hasAlert ? 'text-rose-400' : 'text-th-text-secondary'}`} />
+        <span className="flex-1 truncate text-sm text-th-text-secondary">Family update</span>
+        {hasAlert && (
+          <span className="shrink-0 rounded-full bg-rose-500 px-1.5 text-[10px] font-semibold text-white">
+            {familyAlerts}
+          </span>
+        )}
       </button>
     </div>
   );
@@ -624,6 +631,12 @@ export function TodayTab() {
   const [recapOpen, setRecapOpen] = useState(false);
   const [insightsOpen, setInsightsOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState<'week' | 'decisions' | null>(null);
+  const [aiBriefing, setAiBriefing] = useState<string | null>(null);
+  const [digest, setDigest] = useState<ProjectDigest | null>(null);
+  const [journalOpen, setJournalOpen] = useState(false);
+  const [journal, setJournal] = useState('');
+  const journalSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const briefingTriggered = useRef(false);
 
   useEffect(() => {
     setLoading(true);
@@ -646,6 +659,36 @@ export function TodayTab() {
 
   const now = useMemo(() => new Date(), []);
 
+  // Stream an AI briefing once primary data is in (today only).
+  useEffect(() => {
+    if (briefingTriggered.current) return;
+    if (loading) return;
+    briefingTriggered.current = true;
+    const eventList = events
+      .filter((e) => !e.allDay && isSameDay(e.start, now))
+      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+      .map((e) => ({ title: e.title, time: formatTime(e.start) }));
+    setAiBriefing('');
+    api
+      .aiGenerateBriefing(
+        {
+          weather: weather
+            ? {
+                tempF: weather.current.tempF,
+                description: weather.current.description,
+                feelsLikeF: weather.current.feelsLikeF,
+              }
+            : undefined,
+          events: eventList,
+          taskCount: tasks.filter((t) => t.status !== 'completed').length,
+          displayName: user?.displayName?.split(' ')[0],
+          dayOfWeek: now.toLocaleDateString([], { weekday: 'long' }),
+        },
+        (chunk) => setAiBriefing((prev) => (prev ?? '') + chunk),
+      )
+      .catch(() => setAiBriefing(null));
+  }, [loading, events, weather, tasks, user, now]);
+
   const activeProject = useMemo<Project | null>(() => {
     const active = projects.filter((p) => p.status === 'active');
     if (active.length === 0) return null;
@@ -658,6 +701,54 @@ export function TodayTab() {
     });
     return active[0] ?? null;
   }, [projects]);
+
+  // Load today's journal lazily — only when the user opens it.
+  const dateKey = useMemo(() => {
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }, [now]);
+  const journalLoaded = useRef(false);
+  useEffect(() => {
+    if (!journalOpen || journalLoaded.current) return;
+    journalLoaded.current = true;
+    api
+      .getDailyNote(dateKey)
+      .then((n) => setJournal(n.content || ''))
+      .catch(() => {});
+  }, [journalOpen, dateKey]);
+
+  const handleJournalChange = useCallback(
+    (value: string) => {
+      setJournal(value);
+      if (journalSaveRef.current) clearTimeout(journalSaveRef.current);
+      journalSaveRef.current = setTimeout(() => {
+        api.saveDailyNote(dateKey, value).catch(() => {});
+      }, 500);
+    },
+    [dateKey],
+  );
+
+  // Fetch project digest for the active project (powers the recommendation strip).
+  useEffect(() => {
+    if (!activeProject) {
+      setDigest(null);
+      return;
+    }
+    let cancelled = false;
+    api
+      .getProjectDigest(activeProject.id)
+      .then((d) => {
+        if (!cancelled) setDigest(d);
+      })
+      .catch(() => {
+        if (!cancelled) setDigest(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeProject]);
 
   const focusTask = useMemo<Task | null>(() => {
     const open = tasks.filter((t) => t.status !== 'completed');
@@ -675,13 +766,14 @@ export function TodayTab() {
   const restInsights = insights.slice(1);
 
   const recommendation = useMemo<string | null>(() => {
+    if (digest?.nextAction) return digest.nextAction;
     if (!activeProject) return null;
     if (focusTask) return `Tackle "${focusTask.title}" before end of day.`;
     if (activeProject.taskCount > activeProject.completedTaskCount) {
       return `Pick up the next item on ${activeProject.title}.`;
     }
     return null;
-  }, [activeProject, focusTask]);
+  }, [digest, activeProject, focusTask]);
 
   const resumeText = activeProject ? `Continue ${activeProject.title}` : null;
 
@@ -693,7 +785,10 @@ export function TodayTab() {
   const greeting = getGreeting();
   const GreetingIcon = greeting.Icon;
   const firstName = user?.displayName?.split(' ')[0] ?? '';
-  const statusSentence = buildStatusSentence(events, now);
+  // Prefer the streamed AI briefing once it has content; fall back to the deterministic sentence.
+  const statusSentence = aiBriefing && aiBriefing.length > 0
+    ? aiBriefing
+    : buildStatusSentence(events, now);
   const dateLine = now.toLocaleDateString([], {
     weekday: 'long',
     month: 'long',
@@ -704,7 +799,7 @@ export function TodayTab() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-th-border-strong border-t-cyan-400" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-th-border-strong border-t-th-accent" />
       </div>
     );
   }
@@ -740,7 +835,24 @@ export function TodayTab() {
               <Info className="h-3.5 w-3.5" />
             </button>
           </p>
-          <RecapPill insights={insights} open={recapOpen} onToggle={() => setRecapOpen((v) => !v)} />
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <RecapPill insights={insights} open={recapOpen} onToggle={() => setRecapOpen((v) => !v)} />
+            <button
+              type="button"
+              onClick={() => setJournalOpen((v) => !v)}
+              className="text-xs font-medium text-th-text-muted hover:text-th-text-secondary hover:underline"
+            >
+              {journalOpen ? 'Close journal' : 'Open journal'}
+            </button>
+          </div>
+          {journalOpen && (
+            <textarea
+              value={journal}
+              onChange={(e) => handleJournalChange(e.target.value)}
+              placeholder="What's on your mind today?"
+              className="mt-3 w-full min-h-[100px] rounded-xl border border-th-border bg-th-surface px-4 py-3 text-sm text-th-text leading-relaxed outline-none placeholder-th-text-muted resize-y focus:border-th-accent animate-slide-up"
+            />
+          )}
         </div>
 
         {/* 3. Hero chat input */}
@@ -767,7 +879,7 @@ export function TodayTab() {
         />
 
         {/* 6. Footer pill row */}
-        <FooterPills resumeText={resumeText} />
+        <FooterPills resumeText={resumeText} familyAlerts={0} />
 
         {/* Collapsible insights (closed by default) */}
         {restInsights.length > 0 && (
