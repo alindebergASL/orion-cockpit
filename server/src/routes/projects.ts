@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { getDb } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
 import { openclawClient } from '../services/openclaw.js';
+import { syncTasks } from '../services/sync.js';
 import { streamAiText } from '../services/ai-stream.js';
 
 export const projectsRouter = Router();
@@ -56,7 +57,7 @@ projectsRouter.get('/:id', (req, res) => {
   }
 
   const tasks = getDb()
-    .prepare('SELECT id, title, status, assignee, sort_order, created_at FROM project_tasks WHERE project_id = ? ORDER BY sort_order ASC, id ASC')
+    .prepare('SELECT id, title, status, assignee, sort_order, created_at, external_id, promoted_at FROM project_tasks WHERE project_id = ? ORDER BY sort_order ASC, id ASC')
     .all(project.id) as Record<string, unknown>[];
 
   const updates = getDb()
@@ -212,6 +213,50 @@ projectsRouter.delete('/:id/tasks/:taskId', (req, res) => {
     .run(req.params.taskId, req.params.id);
   if (result.changes === 0) { res.status(404).json({ error: 'Task not found' }); return; }
   res.json({ ok: true });
+});
+
+// Promote project task to a real reminder via OpenClaw
+projectsRouter.post('/:id/tasks/:taskId/promote', async (req, res) => {
+  const db = getDb();
+  const userId = req.user!.id;
+  const { list, dueDate, priority } = req.body as { list?: string; dueDate?: string; priority?: string };
+
+  const project = db.prepare('SELECT id, title FROM projects WHERE id = ? AND user_id = ?')
+    .get(req.params.id, userId) as { id: number; title: string } | undefined;
+  if (!project) { res.status(404).json({ error: 'Project not found' }); return; }
+
+  const task = db.prepare('SELECT id, title, external_id, promoted_at FROM project_tasks WHERE id = ? AND project_id = ?')
+    .get(req.params.taskId, project.id) as { id: number; title: string; external_id: string | null; promoted_at: string | null } | undefined;
+  if (!task) { res.status(404).json({ error: 'Task not found' }); return; }
+
+  if (task.promoted_at) {
+    res.status(409).json({ error: 'Already promoted', externalId: task.external_id, promotedAt: task.promoted_at });
+    return;
+  }
+
+  try {
+    const created = await openclawClient.createTask({
+      title: task.title,
+      list: list || undefined,
+      dueDate: dueDate || undefined,
+      priority: priority || undefined,
+      notes: `From project: ${project.title}`,
+    });
+
+    db.prepare("UPDATE project_tasks SET external_id = ?, promoted_at = datetime('now') WHERE id = ?")
+      .run(created.id, task.id);
+
+    await syncTasks(userId);
+
+    res.json({
+      ok: true,
+      externalId: created.id,
+      task: { id: task.id, title: task.title, externalId: created.id },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to create reminder';
+    res.status(502).json({ error: message });
+  }
 });
 
 // ── Project Updates (progress log) ──────────────────────

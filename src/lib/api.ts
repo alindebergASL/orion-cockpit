@@ -443,6 +443,17 @@ class ApiClient {
     await this.request(`/api/projects/${projectId}/tasks/${taskId}`, { method: 'DELETE' });
   }
 
+  async promoteProjectTask(
+    projectId: number,
+    taskId: number,
+    opts?: { list?: string; dueDate?: string; priority?: string },
+  ): Promise<{ ok: boolean; externalId: string }> {
+    return this.request(`/api/projects/${projectId}/tasks/${taskId}/promote`, {
+      method: 'POST',
+      body: JSON.stringify(opts ?? {}),
+    });
+  }
+
   async addProjectUpdate(projectId: number, content: string): Promise<ProjectUpdate> {
     return this.request(`/api/projects/${projectId}/updates`, {
       method: 'POST',

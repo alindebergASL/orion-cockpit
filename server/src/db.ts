@@ -229,6 +229,10 @@ export function initDb(): void {
   try { d.exec("ALTER TABLE notes ADD COLUMN color TEXT DEFAULT NULL"); } catch { /* exists */ }
   try { d.exec("ALTER TABLE notes ADD COLUMN is_pinned INTEGER DEFAULT 0"); } catch { /* exists */ }
 
+  // Project task promotion tracking
+  try { d.exec("ALTER TABLE project_tasks ADD COLUMN external_id TEXT DEFAULT NULL"); } catch { /* exists */ }
+  try { d.exec("ALTER TABLE project_tasks ADD COLUMN promoted_at TEXT DEFAULT NULL"); } catch { /* exists */ }
+
   // Project notes table (safe migration)
   d.exec(`
     CREATE TABLE IF NOT EXISTS project_notes (

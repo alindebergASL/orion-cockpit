@@ -17,6 +17,7 @@ import {
   Smile,
   StickyNote,
   ChevronDown,
+  Bell,
 } from 'lucide-react';
 import type { Project, ProjectDetail, ProjectTask, ProjectNote, ProjectDigest } from '../../types';
 import { api } from '../../lib/api';
@@ -300,6 +301,20 @@ export function ProjectsTab() {
     if (!detail || !confirm('Delete this task?')) return;
     setDetail({ ...detail, tasks: detail.tasks.filter((t) => t.id !== taskId) });
     try { await api.deleteProjectTask(detail.id, taskId); } catch { /* ignore */ }
+  }, [detail]);
+
+  const handlePromoteTask = useCallback(async (task: ProjectTask) => {
+    if (!detail || task.promotedAt) return;
+    try {
+      await api.promoteProjectTask(detail.id, task.id);
+      setDetail({
+        ...detail,
+        tasks: detail.tasks.map((t) =>
+          t.id === task.id ? { ...t, promotedAt: new Date().toISOString(), externalId: 'synced' } : t
+        ),
+      });
+      trackActivity('project_task_promoted', { projectId: detail.id, taskId: task.id, title: task.title });
+    } catch { /* ignore */ }
   }, [detail]);
 
   const startEditTask = useCallback((task: ProjectTask) => {
@@ -870,7 +885,21 @@ export function ProjectsTab() {
                     {task.assignee && (
                       <span className="text-[10px] text-purple-400">@{task.assignee}</span>
                     )}
+                    {task.promotedAt && (
+                      <span className="text-[10px] text-emerald-400" title="Promoted to reminder">
+                        <Bell className="inline h-3 w-3" />
+                      </span>
+                    )}
                     <div className="flex items-center gap-0.5 md:opacity-0 md:group-hover:opacity-100">
+                      {!task.promotedAt && task.status !== 'completed' && (
+                        <button
+                          onClick={() => handlePromoteTask(task)}
+                          className="rounded p-1.5 text-th-text-muted hover:text-amber-400"
+                          title="Promote to reminder"
+                        >
+                          <Bell className="h-3 w-3" />
+                        </button>
+                      )}
                       <button onClick={() => startEditTask(task)} className="rounded p-1.5 text-th-text-muted hover:text-cyan-400">
                         <Pencil className="h-3 w-3" />
                       </button>

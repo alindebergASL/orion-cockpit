@@ -118,6 +118,8 @@ export interface ProjectTask {
   assignee?: string | null;
   sortOrder: number;
   createdAt: string;
+  externalId?: string | null;
+  promotedAt?: string | null;
 }
 
 export interface ProjectUpdate {
