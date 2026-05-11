@@ -175,6 +175,34 @@ async function syncTasksInner(userId: number): Promise<unknown[]> {
 
   syncAll();
 
+  // Reconcile promoted project tasks with their linked reminders.
+  // If a reminder's status changed in Apple Reminders, update the project task to match.
+  const promotedTasks = db.prepare(`
+    SELECT pt.id, pt.status as pt_status, pt.external_id, pt.project_id
+    FROM project_tasks pt
+    JOIN projects p ON pt.project_id = p.id
+    WHERE p.user_id = ? AND pt.external_id IS NOT NULL
+  `).all(userId) as { id: number; pt_status: string; external_id: string; project_id: number }[];
+
+  if (promotedTasks.length > 0) {
+    const updatePt = db.prepare('UPDATE project_tasks SET status = ? WHERE id = ?');
+    const touchProject = db.prepare("UPDATE projects SET updated_at = datetime('now') WHERE id = ?");
+    const touchedProjects = new Set<number>();
+
+    for (const pt of promotedTasks) {
+      const synced = db.prepare('SELECT status FROM tasks WHERE external_id = ? AND user_id = ?')
+        .get(pt.external_id, userId) as { status: string } | undefined;
+      if (synced && synced.status !== pt.pt_status) {
+        updatePt.run(synced.status, pt.id);
+        touchedProjects.add(pt.project_id);
+      }
+    }
+
+    for (const pid of touchedProjects) {
+      touchProject.run(pid);
+    }
+  }
+
   db.prepare('INSERT INTO sync_log (user_id, data_type, last_synced_at, status) VALUES (?, ?, ?, ?)')
     .run(userId, 'tasks', now, 'success');
 

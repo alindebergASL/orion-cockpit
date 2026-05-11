@@ -196,14 +196,19 @@ projectsRouter.put('/:id/tasks/:taskId/status', (req, res) => {
   const { status } = req.body;
   if (!['open', 'completed'].includes(status)) { res.status(400).json({ error: 'Invalid status' }); return; }
 
-  const result = getDb()
-    .prepare('UPDATE project_tasks SET status = ? WHERE id = ? AND project_id = ?')
-    .run(status, req.params.taskId, req.params.id);
+  const task = getDb()
+    .prepare('SELECT id, external_id FROM project_tasks WHERE id = ? AND project_id = ?')
+    .get(req.params.taskId, req.params.id) as { id: number; external_id: string | null } | undefined;
 
-  if (result.changes === 0) { res.status(404).json({ error: 'Task not found' }); return; }
+  if (!task) { res.status(404).json({ error: 'Task not found' }); return; }
 
+  getDb().prepare('UPDATE project_tasks SET status = ? WHERE id = ?').run(status, task.id);
   getDb().prepare("UPDATE projects SET updated_at = datetime('now') WHERE id = ?").run(req.params.id);
   res.json({ ok: true });
+
+  if (task.external_id) {
+    openclawClient.updateTaskStatus(task.external_id, status as 'completed' | 'open').catch(() => {});
+  }
 });
 
 // Delete project task
