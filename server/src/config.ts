@@ -1,3 +1,5 @@
+import { resolve } from 'path';
+
 export type ProviderType = 'anthropic' | 'openai' | 'openrouter' | 'custom';
 
 export interface TierConfig {
@@ -14,6 +16,7 @@ export interface AppConfig {
   port: number;
   jwtSecret: string;
   chatMode: ChatMode;
+  vaultPath: string;
   openclaw: {
     url: string;
     token: string;
@@ -70,6 +73,7 @@ function loadConfig(): AppConfig {
     port: parseInt(process.env.PORT || '3001', 10),
     jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me',
     chatMode: (process.env.CHAT_MODE as ChatMode) || 'openclaw',
+    vaultPath: process.env.COCKPIT_VAULT_PATH || resolve('.', 'data', 'vault'),
     openclaw: {
       url: (process.env.OPENCLAW_URL || 'http://localhost:8891').replace(/\/+$/, ''),
       token: process.env.OPENCLAW_TOKEN || '',
