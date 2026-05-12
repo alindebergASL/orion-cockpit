@@ -24,6 +24,7 @@ import { briefingRouter } from './routes/briefing.js';
 import { runAgentLoop, pushActivityDigest } from './services/agent.js';
 import { addClient } from './services/sse.js';
 import { authenticate } from './middleware/auth.js';
+import { backfillVault } from './services/vault-backfill.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -144,8 +145,9 @@ app.get('*', (_req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
-// Initialize DB and start
+// Initialize DB, then backfill vault for existing projects
 initDb();
+backfillVault();
 
 // Scheduling intervals
 const SYNC_INTERVAL = 15 * 60 * 1000;        // 15 min: calendar/tasks sync

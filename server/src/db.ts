@@ -233,6 +233,12 @@ export function initDb(): void {
   try { d.exec("ALTER TABLE project_tasks ADD COLUMN external_id TEXT DEFAULT NULL"); } catch { /* exists */ }
   try { d.exec("ALTER TABLE project_tasks ADD COLUMN promoted_at TEXT DEFAULT NULL"); } catch { /* exists */ }
 
+  // Vault integration: slug and vault_path for projects and project_notes
+  try { d.exec("ALTER TABLE projects ADD COLUMN slug TEXT DEFAULT NULL"); } catch { /* exists */ }
+  try { d.exec("ALTER TABLE projects ADD COLUMN vault_path TEXT DEFAULT NULL"); } catch { /* exists */ }
+  try { d.exec("ALTER TABLE project_notes ADD COLUMN slug TEXT DEFAULT NULL"); } catch { /* exists */ }
+  try { d.exec("ALTER TABLE project_notes ADD COLUMN vault_path TEXT DEFAULT NULL"); } catch { /* exists */ }
+
   // Project notes table (safe migration)
   d.exec(`
     CREATE TABLE IF NOT EXISTS project_notes (
